@@ -1,6 +1,6 @@
 # Miscellaneous
 *.class
-*.lock
+# *.lock (désactivé pour que pubspec.lock et Cargo.lock soient commités)
 *.log
 *.pyc
 *.swp
@@ -117,3 +117,18 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+
+# --- Ajouts personnalisés pour le projet Flutter + Rust ---
+
+# Rust & Cargo
+/rust/target/
+/rust_builder/target/
+**/*.rs.bk
+
+# IDE & Editeurs
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
