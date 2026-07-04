@@ -5,6 +5,7 @@
 
 import 'api/fs.dart';
 import 'api/models.dart';
+import 'api/parser.dart';
 import 'api/simple.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -36,6 +37,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Page dco_decode_box_autoadd_page(dynamic raw);
 
   @protected
+  int dco_decode_box_autoadd_u_8(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
@@ -45,16 +49,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<TextChunk> dco_decode_list_text_chunk(dynamic raw);
+
+  @protected
   List<TreeNode> dco_decode_list_tree_node(dynamic raw);
 
   @protected
+  String? dco_decode_opt_String(dynamic raw);
+
+  @protected
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_8(dynamic raw);
 
   @protected
   Page dco_decode_page(dynamic raw);
 
   @protected
   PageMetadata dco_decode_page_metadata(dynamic raw);
+
+  @protected
+  TextAttributes dco_decode_text_attributes(dynamic raw);
+
+  @protected
+  TextChunk dco_decode_text_chunk(dynamic raw);
 
   @protected
   TreeNode dco_decode_tree_node(dynamic raw);
@@ -84,6 +103,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Page sse_decode_box_autoadd_page(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_box_autoadd_u_8(SseDeserializer deserializer);
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
@@ -93,16 +115,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<TextChunk> sse_decode_list_text_chunk(SseDeserializer deserializer);
+
+  @protected
   List<TreeNode> sse_decode_list_tree_node(SseDeserializer deserializer);
 
   @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_8(SseDeserializer deserializer);
 
   @protected
   Page sse_decode_page(SseDeserializer deserializer);
 
   @protected
   PageMetadata sse_decode_page_metadata(SseDeserializer deserializer);
+
+  @protected
+  TextAttributes sse_decode_text_attributes(SseDeserializer deserializer);
+
+  @protected
+  TextChunk sse_decode_text_chunk(SseDeserializer deserializer);
 
   @protected
   TreeNode sse_decode_tree_node(SseDeserializer deserializer);
@@ -141,6 +178,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_page(Page self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_u_8(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
@@ -153,7 +193,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_text_chunk(
+    List<TextChunk> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_tree_node(List<TreeNode> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_i_64(
@@ -162,10 +211,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_u_8(int? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_page(Page self, SseSerializer serializer);
 
   @protected
   void sse_encode_page_metadata(PageMetadata self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_text_attributes(
+    TextAttributes self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_text_chunk(TextChunk self, SseSerializer serializer);
 
   @protected
   void sse_encode_tree_node(TreeNode self, SseSerializer serializer);

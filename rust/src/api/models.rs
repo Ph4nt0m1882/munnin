@@ -40,3 +40,25 @@ pub struct TreeNode {
     pub is_directory: bool,
     pub children: Vec<TreeNode>,
 }
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TextAttributes {
+    #[serde(default)]
+    pub bold: bool,
+    #[serde(default)]
+    pub italic: bool,
+    #[serde(default)]
+    pub strikethrough: bool,
+    #[serde(default)]
+    pub code: bool,
+    #[serde(default)]
+    pub link: Option<String>,
+    #[serde(default)]
+    pub header: Option<u8>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TextChunk {
+    pub text: String,
+    pub attributes: TextAttributes,
+}
