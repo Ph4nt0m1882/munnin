@@ -9,21 +9,22 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `scan_dir_recursive`
 
-void initWiki({required String rootPath, required String title}) =>
+Future<void> initWiki({required String rootPath, required String title}) =>
     RustLib.instance.api.crateApiFsInitWiki(rootPath: rootPath, title: title);
 
-WikiAnchor readAnchor({required String rootPath}) =>
+Future<WikiAnchor> readAnchor({required String rootPath}) =>
     RustLib.instance.api.crateApiFsReadAnchor(rootPath: rootPath);
 
-TreeNode scanDirectory({required String rootPath}) =>
+Future<TreeNode> scanDirectory({required String rootPath}) =>
     RustLib.instance.api.crateApiFsScanDirectory(rootPath: rootPath);
 
-Page readPage({required String rootPath, required String relPath}) => RustLib
-    .instance
-    .api
-    .crateApiFsReadPage(rootPath: rootPath, relPath: relPath);
+Future<Page> readPage({required String rootPath, required String relPath}) =>
+    RustLib.instance.api.crateApiFsReadPage(
+      rootPath: rootPath,
+      relPath: relPath,
+    );
 
-void writePage({
+Future<void> writePage({
   required String rootPath,
   required String relPath,
   required Page page,

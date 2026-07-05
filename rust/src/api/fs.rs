@@ -4,7 +4,6 @@ use flutter_rust_bridge::frb;
 use chrono::Utc;
 use crate::api::models::{WikiAnchor, PageMetadata, Page, TreeNode};
 
-#[frb(sync)]
 pub fn init_wiki(root_path: String, title: String) -> anyhow::Result<()> {
     let root = Path::new(&root_path);
     if !root.exists() {
@@ -21,7 +20,6 @@ pub fn init_wiki(root_path: String, title: String) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[frb(sync)]
 pub fn read_anchor(root_path: String) -> anyhow::Result<WikiAnchor> {
     let anchor_path = Path::new(&root_path).join(".crow");
     let content = fs::read_to_string(anchor_path)?;
@@ -29,7 +27,6 @@ pub fn read_anchor(root_path: String) -> anyhow::Result<WikiAnchor> {
     Ok(anchor)
 }
 
-#[frb(sync)]
 pub fn scan_directory(root_path: String) -> anyhow::Result<TreeNode> {
     let root = Path::new(&root_path);
     scan_dir_recursive(root, root)
@@ -80,7 +77,6 @@ fn scan_dir_recursive(path: &Path, root: &Path) -> anyhow::Result<TreeNode> {
     })
 }
 
-#[frb(sync)]
 pub fn read_page(root_path: String, rel_path: String) -> anyhow::Result<Page> {
     let file_path = Path::new(&root_path).join(&rel_path);
     let content = fs::read_to_string(file_path)?;
@@ -117,7 +113,6 @@ pub fn read_page(root_path: String, rel_path: String) -> anyhow::Result<Page> {
     })
 }
 
-#[frb(sync)]
 pub fn write_page(root_path: String, rel_path: String, page: Page) -> anyhow::Result<()> {
     let file_path = Path::new(&root_path).join(&rel_path);
     if let Some(parent) = file_path.parent() {

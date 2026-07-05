@@ -9,6 +9,7 @@ crate-type = ["cdylib", "staticlib"]
 [dependencies]
 anyhow = "1.0.103"
 chrono = "0.4.45"
+directories = "6.0.0"
 flutter_rust_bridge = "=2.11.1"
 pulldown-cmark = "0.13.4"
 serde = { version = "1.0.228", features = ["derive"] }

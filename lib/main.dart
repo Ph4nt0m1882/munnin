@@ -1,152 +1,216 @@
-// The original content is temporarily commented out to allow generating a self-contained demo - feel free to uncomment later.
-
-// import 'package:flutter/material.dart';
-//
-// void main() {
-//   runApp(const MyApp());
-// }
-//
-// class MyApp extends StatelessWidget {
-//   const MyApp({super.key});
-//
-//   // This widget is the root of your application.
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'Flutter Demo',
-//       theme: ThemeData(
-//         // This is the theme of your application.
-//         //
-//         // TRY THIS: Try running your application with "flutter run". You'll see
-//         // the application has a purple toolbar. Then, without quitting the app,
-//         // try changing the seedColor in the colorScheme below to Colors.green
-//         // and then invoke "hot reload" (save your changes or press the "hot
-//         // reload" button in a Flutter-supported IDE, or press "r" if you used
-//         // the command line to start the app).
-//         //
-//         // Notice that the counter didn't reset back to zero; the application
-//         // state is not lost during the reload. To reset the state, use hot
-//         // restart instead.
-//         //
-//         // This works for code too, not just values: Most code changes can be
-//         // tested with just a hot reload.
-//         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-//       ),
-//       home: const MyHomePage(title: 'Flutter Demo Home Page'),
-//     );
-//   }
-// }
-//
-// class MyHomePage extends StatefulWidget {
-//   const MyHomePage({super.key, required this.title});
-//
-//   // This widget is the home page of your application. It is stateful, meaning
-//   // that it has a State object (defined below) that contains fields that affect
-//   // how it looks.
-//
-//   // This class is the configuration for the state. It holds the values (in this
-//   // case the title) provided by the parent (in this case the App widget) and
-//   // used by the build method of the State. Fields in a Widget subclass are
-//   // always marked "final".
-//
-//   final String title;
-//
-//   @override
-//   State<MyHomePage> createState() => _MyHomePageState();
-// }
-//
-// class _MyHomePageState extends State<MyHomePage> {
-//   int _counter = 0;
-//
-//   void _incrementCounter() {
-//     setState(() {
-//       // This call to setState tells the Flutter framework that something has
-//       // changed in this State, which causes it to rerun the build method below
-//       // so that the display can reflect the updated values. If we changed
-//       // _counter without calling setState(), then the build method would not be
-//       // called again, and so nothing would appear to happen.
-//       _counter++;
-//     });
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     // This method is rerun every time setState is called, for instance as done
-//     // by the _incrementCounter method above.
-//     //
-//     // The Flutter framework has been optimized to make rerunning build methods
-//     // fast, so that you can just rebuild anything that needs updating rather
-//     // than having to individually change instances of widgets.
-//     return Scaffold(
-//       appBar: AppBar(
-//         // TRY THIS: Try changing the color here to a specific color (to
-//         // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-//         // change color while the other colors stay the same.
-//         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-//         // Here we take the value from the MyHomePage object that was created by
-//         // the App.build method, and use it to set our appbar title.
-//         title: Text(widget.title),
-//       ),
-//       body: Center(
-//         // Center is a layout widget. It takes a single child and positions it
-//         // in the middle of the parent.
-//         child: Column(
-//           // Column is also a layout widget. It takes a list of children and
-//           // arranges them vertically. By default, it sizes itself to fit its
-//           // children horizontally, and tries to be as tall as its parent.
-//           //
-//           // Column has various properties to control how it sizes itself and
-//           // how it positions its children. Here we use mainAxisAlignment to
-//           // center the children vertically; the main axis here is the vertical
-//           // axis because Columns are vertical (the cross axis would be
-//           // horizontal).
-//           //
-//           // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-//           // action in the IDE, or press "p" in the console), to see the
-//           // wireframe for each widget.
-//           mainAxisAlignment: .center,
-//           children: [
-//             const Text('You have pushed the button this many times:'),
-//             Text(
-//               '$_counter',
-//               style: Theme.of(context).textTheme.headlineMedium,
-//             ),
-//           ],
-//         ),
-//       ),
-//       floatingActionButton: FloatingActionButton(
-//         onPressed: _incrementCounter,
-//         tooltip: 'Increment',
-//         child: const Icon(Icons.add),
-//       ),
-//     );
-//   }
-// }
-//
-
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:munnin/src/rust/api/simple.dart';
+import 'package:flutter/services.dart';
 import 'package:munnin/src/rust/frb_generated.dart';
+import 'package:munnin/src/rust/api/settings.dart';
+import 'package:munnin/theme/builtin_themes.dart';
+import 'package:munnin/theme/theme_manager.dart';
+import 'package:munnin/ui/top_bar.dart';
+import 'package:munnin/ui/responsive_layout.dart';
+import 'package:munnin/ui/bottom_navigation.dart';
+import 'package:munnin/ui/settings/theme_selection_screen.dart';
+import 'package:munnin/ui/layout/draggable_window.dart';
+import 'package:munnin/ui/editor/welcome_screen.dart';
+import 'package:munnin/core/commands/app_command.dart';
+import 'package:munnin/core/commands/command_manager.dart';
+import 'package:munnin/ui/commands/top_bar_search.dart';
+import 'package:window_manager/window_manager.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
-  runApp(const MyApp());
+  
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    await windowManager.ensureInitialized();
+    WindowOptions windowOptions = const WindowOptions(
+      size: Size(1000, 700),
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.hidden, // Cacher la barre native
+    );
+    
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
+
+  runApp(const MunninApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MunninApp extends StatefulWidget {
+  const MunninApp({super.key});
+
+  @override
+  State<MunninApp> createState() => _MunninAppState();
+}
+
+class _MunninAppState extends State<MunninApp> {
+  int _themeIndex = 0; // 0 = Light, 1 = Dark, etc.
+  bool _isSettingsOpen = false;
+  String? _currentWikiPath; // Stocke le chemin du wiki ouvert
+  List<String> _recentWikis = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialSettings();
+    _registerCommands();
+    HardwareKeyboard.instance.addHandler(_handleGlobalKeys);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleGlobalKeys);
+    super.dispose();
+  }
+
+  bool _handleGlobalKeys(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      if (HardwareKeyboard.instance.isControlPressed && event.logicalKey == LogicalKeyboardKey.keyK) {
+        CommandManager.instance.execute('app.command_palette');
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _registerCommands() {
+    final cmdManager = CommandManager.instance;
+    
+    cmdManager.register(AppCommand(
+      id: 'app.theme_settings',
+      title: 'Changer le thème',
+      description: 'Ouvrir les paramètres d\'apparence',
+      icon: Icons.palette,
+      execute: _openThemeSettings,
+    ));
+
+    cmdManager.register(AppCommand(
+      id: 'app.command_palette',
+      title: 'Afficher la palette de commandes',
+      icon: Icons.search,
+      shortcutLabel: 'Ctrl+K',
+      execute: () {
+        globalSearchFocusNode.requestFocus();
+      },
+    ));
+    
+    // On pourra rajouter wiki.create une fois qu'on saura appeler le picker sans WelcomeScreen
+  }
+
+  void _loadInitialSettings() {
+    final settings = loadSettings();
+    setState(() {
+      _themeIndex = settings.themeIndex;
+      _recentWikis = settings.recentWikis;
+    });
+  }
+
+  void _setTheme(int index) {
+    setState(() {
+      _themeIndex = index;
+    });
+    saveTheme(index: index);
+  }
+  
+  void _openThemeSettings() {
+    setState(() {
+      _isSettingsOpen = true;
+    });
+  }
+
+  void _closeThemeSettings() {
+    setState(() {
+      _isSettingsOpen = false;
+    });
+  }
+
+  void _openWiki(String path) {
+    setState(() {
+      _currentWikiPath = path;
+    });
+    addRecentWiki(wikiPath: path);
+    _loadInitialSettings(); // Rafraîchit l'historique
+  }
+
+  void _openEditor() {
+    // Force la vue éditeur (ferme potentiellement d'autres choses plus tard)
+  }
 
   @override
   Widget build(BuildContext context) {
+    final currentCrowStyle = BuiltinThemes.all[_themeIndex];
+    final themeData = ThemeManager.buildThemeData(currentCrowStyle);
+
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('flutter_rust_bridge quickstart')),
-        body: Center(
-          child: Text(
-            'Action: Call Rust `greet("Tom")`\nResult: `${greet(name: "Tom")}`',
+      navigatorKey: navigatorKey,
+      title: 'Munnin Wiki',
+      debugShowCheckedModeBanner: false,
+      theme: themeData,
+      home: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < ResponsiveLayout.mobileBreakpoint;
+          
+          return Scaffold(
+                appBar: const CustomTopBar(),
+                // Si mobile, on affiche la BottomBar, sinon rien (car Desktop utilise la LeftSidebar)
+                bottomNavigationBar: isMobile 
+                  ? MobileBottomNavigation(
+                      onThemeToggle: _openThemeSettings,
+                      onOpenEditor: _openEditor,
+                    ) 
+                  : null,
+                // Le body utilise un Stack pour permettre aux fenêtres de flotter au-dessus de l'éditeur
+                body: Stack(
+                  children: [
+                    // Couche 0 : Le Layout de fond (Editeur ou Accueil)
+                    ResponsiveLayout(
+                      onThemeToggle: _openThemeSettings,
+                      onOpenEditor: _openEditor,
+                      child: _currentWikiPath == null 
+                        ? WelcomeScreen(
+                            onWikiOpened: _openWiki,
+                            recentWikis: _recentWikis,
+                          )
+                        : Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Wiki ouvert !',
+                                  style: themeData.textTheme.headlineMedium,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _currentWikiPath!,
+                                  style: themeData.textTheme.bodyLarge?.copyWith(
+                                    color: themeData.colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                    ),
+                    
+                    // Couche 1 : Les Fenêtres Flottantes (In-App Windows)
+                    if (_isSettingsOpen)
+                      DraggableWindow(
+                        title: 'Paramètres',
+                        onClose: _closeThemeSettings,
+                        child: ThemeSelectionScreen(
+                          initialIndex: _themeIndex,
+                          onThemeSelected: _setTheme,
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }
           ),
-        ),
-      ),
     );
   }
 }

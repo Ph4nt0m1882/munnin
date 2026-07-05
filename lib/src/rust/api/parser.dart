@@ -7,8 +7,8 @@ import '../frb_generated.dart';
 import 'models.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-List<TextChunk> markdownToDelta({required String markdown}) =>
+Future<List<TextChunk>> markdownToDelta({required String markdown}) =>
     RustLib.instance.api.crateApiParserMarkdownToDelta(markdown: markdown);
 
-String deltaToMarkdown({required List<TextChunk> chunks}) =>
+Future<String> deltaToMarkdown({required List<TextChunk> chunks}) =>
     RustLib.instance.api.crateApiParserDeltaToMarkdown(chunks: chunks);

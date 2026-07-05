@@ -2,7 +2,6 @@ use flutter_rust_bridge::frb;
 use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 use crate::api::models::{TextChunk, TextAttributes};
 
-#[frb(sync)]
 pub fn markdown_to_delta(markdown: String) -> Vec<TextChunk> {
     let parser = Parser::new(&markdown);
     let mut chunks = Vec::new();
@@ -67,7 +66,6 @@ pub fn markdown_to_delta(markdown: String) -> Vec<TextChunk> {
     chunks
 }
 
-#[frb(sync)]
 pub fn delta_to_markdown(chunks: Vec<TextChunk>) -> String {
     let mut markdown = String::new();
     let mut prev_attrs = TextAttributes::default();
