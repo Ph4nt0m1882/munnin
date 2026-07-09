@@ -15,7 +15,7 @@ pub fn init_app() {
 pub fn init_wiki(parent_path: String, name: String) -> Result<String, String> {
     let parent_dir = std::path::Path::new(&parent_path);
     let wiki_dir = parent_dir.join(&name);
-    let crow_file = wiki_dir.join(".crow");
+    let crow_file = wiki_dir.join(format!("{}.crow", name));
 
     // Vérifie si le dossier du wiki existe déjà
     if wiki_dir.exists() {

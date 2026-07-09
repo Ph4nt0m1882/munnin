@@ -1,26 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
-class OpenedFile {
-  final String path;
-  String content;
-  bool isDirty;
-  
-  // Nom du fichier pour l'affichage dans l'onglet
-  String get name {
-    final fileName = path.split(RegExp(r'[/\\]')).last;
-    if (fileName.toLowerCase().endsWith('.md')) {
-      return fileName.substring(0, fileName.length - 3);
-    }
-    return fileName;
-  }
-
-  OpenedFile({
-    required this.path,
-    required this.content,
-    this.isDirty = false,
-  });
-}
+import 'package:munnin/features/editor/models/opened_file.dart';
 
 class EditorManager extends ChangeNotifier {
   static final EditorManager instance = EditorManager._internal();
@@ -94,6 +75,15 @@ class EditorManager extends ChangeNotifier {
     }
   }
 
+  /// Marque manuellement un fichier comme propre (utile pour les sauvegardes partielles)
+  void markAsClean(String path) {
+    final file = _openedFiles.where((f) => f.path == path).firstOrNull;
+    if (file != null && file.isDirty) {
+      file.isDirty = false;
+      notifyListeners();
+    }
+  }
+
   /// Sauvegarde le fichier actif
   Future<void> saveActiveFile() async {
     final file = activeFile;
@@ -129,12 +119,34 @@ class EditorManager extends ChangeNotifier {
         path: newPath,
         content: file.content,
         isDirty: file.isDirty,
+        mode: file.mode,
       );
       if (_activeFilePath == oldPath) {
         _activeFilePath = newPath;
       }
       notifyListeners();
     }
+  }
+
+  /// Change le mode d'un fichier ouvert (markdown/render)
+  void setFileMode(String path, EditorMode mode) {
+    final file = _openedFiles.where((f) => f.path == path).firstOrNull;
+    if (file != null && file.mode != mode) {
+      file.mode = mode;
+      notifyListeners();
+    }
+  }
+  
+  /// Change le mode de tous les fichiers
+  void setAllFilesMode(EditorMode mode) {
+    bool changed = false;
+    for (var file in _openedFiles) {
+      if (file.mode != mode) {
+        file.mode = mode;
+        changed = true;
+      }
+    }
+    if (changed) notifyListeners();
   }
 
   /// Ferme tous les fichiers (lors de la fermeture du wiki par exemple)

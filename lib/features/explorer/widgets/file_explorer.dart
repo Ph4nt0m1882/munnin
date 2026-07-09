@@ -15,10 +15,10 @@ class FileExplorer extends StatefulWidget {
   });
 
   @override
-  State<FileExplorer> createState() => _FileExplorerState();
+  State<FileExplorer> createState() => FileExplorerState();
 }
 
-class _FileExplorerState extends State<FileExplorer> {
+class FileExplorerState extends State<FileExplorer> {
   // Map stockant l'état d'expansion des dossiers
   final Map<String, bool> _expandedState = {};
   
@@ -31,7 +31,7 @@ class _FileExplorerState extends State<FileExplorer> {
   @override
   void initState() {
     super.initState();
-    _loadTree();
+    loadTree();
   }
 
   @override
@@ -40,11 +40,11 @@ class _FileExplorerState extends State<FileExplorer> {
     if (oldWidget.rootPath != widget.rootPath) {
       _expandedState.clear();
       _selectedNodePath = null;
-      _loadTree();
+      loadTree();
     }
   }
 
-  Future<void> _loadTree() async {
+  Future<void> loadTree() async {
     final rootDir = Directory(widget.rootPath);
     if (!await rootDir.exists()) return;
 
@@ -114,14 +114,14 @@ class _FileExplorerState extends State<FileExplorer> {
       }
     });
     // On recharge l'arbre plat
-    _loadTree();
+    loadTree();
   }
 
   void _collapseAll() {
     setState(() {
       _expandedState.clear();
     });
-    _loadTree();
+    loadTree();
   }
 
   Future<void> _createNewEntity(bool isDirectory) async {
@@ -178,7 +178,7 @@ class _FileExplorerState extends State<FileExplorer> {
       } else {
         await File(entityPath).create();
       }
-      _loadTree();
+      loadTree();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -270,7 +270,7 @@ class _FileExplorerState extends State<FileExplorer> {
       if (_selectedNodePath == node.entity.path) {
         _selectedNodePath = newPath;
       }
-      _loadTree();
+      loadTree();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
@@ -303,7 +303,7 @@ class _FileExplorerState extends State<FileExplorer> {
       }
       EditorManager.instance.closeFile(node.entity.path);
       if (_selectedNodePath == node.entity.path) _selectedNodePath = null;
-      _loadTree();
+      loadTree();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
@@ -319,7 +319,7 @@ class _FileExplorerState extends State<FileExplorer> {
     try {
       await sourceEntity.rename(newPath);
       EditorManager.instance.renameOpenedFile(sourcePath, newPath);
-      _loadTree();
+      loadTree();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur de déplacement: $e')));
     }

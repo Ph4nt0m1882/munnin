@@ -135,8 +135,8 @@ class _TopBarSearchState extends State<TopBarSearch> {
                           final cmd = _filteredCommands[index];
                           final isSelected = index == _selectedIndex;
 
-                          return InkWell(
-                            onTap: () => _executeCommand(cmd),
+                          return Listener(
+                            onPointerDown: (_) => _executeCommand(cmd),
                             child: Container(
                               color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent,
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

@@ -50,6 +50,7 @@ class _MunninAppState extends State<MunninApp> {
   bool _isSettingsOpen = false;
   String? _currentWikiPath; // Stocke le chemin du wiki ouvert
   List<String> _recentWikis = [];
+  final GlobalKey<FileExplorerState> _fileExplorerKey = GlobalKey<FileExplorerState>();
 
   @override
   void initState() {
@@ -114,6 +115,14 @@ class _MunninAppState extends State<MunninApp> {
     ));
 
     cmdManager.register(AppCommand(
+      id: 'wiki.pull_welcome_file',
+      title: 'Mettre à jour le tutoriel',
+      description: 'Récupérer la dernière version du fichier welcome.md',
+      icon: Icons.download,
+      execute: _pullWelcomeFile,
+    ));
+
+    cmdManager.register(AppCommand(
       id: 'wiki.open',
       title: 'Ouvrir un Wiki...',
       description: 'Ouvrir un répertoire existant',
@@ -140,6 +149,48 @@ class _MunninAppState extends State<MunninApp> {
       shortcutLabel: 'Ctrl+Shift+S',
       execute: () {
         EditorManager.instance.saveAll();
+      },
+    ));
+
+    cmdManager.register(AppCommand(
+      id: 'editor.mode.markdown',
+      title: 'Mode Markdown',
+      description: 'Passer l\'onglet actif en mode édition Markdown',
+      icon: Icons.code,
+      execute: () {
+        final path = EditorManager.instance.activeFilePath;
+        if (path != null) EditorManager.instance.setFileMode(path, EditorMode.markdown);
+      },
+    ));
+
+    cmdManager.register(AppCommand(
+      id: 'editor.mode.render',
+      title: 'Mode Rendu',
+      description: 'Passer l\'onglet actif en mode lecture (Rendu)',
+      icon: Icons.preview,
+      execute: () {
+        final path = EditorManager.instance.activeFilePath;
+        if (path != null) EditorManager.instance.setFileMode(path, EditorMode.render);
+      },
+    ));
+
+    cmdManager.register(AppCommand(
+      id: 'editor.mode.markdown_all',
+      title: 'Tout en Markdown',
+      description: 'Passer tous les onglets en mode édition',
+      icon: Icons.integration_instructions,
+      execute: () {
+        EditorManager.instance.setAllFilesMode(EditorMode.markdown);
+      },
+    ));
+
+    cmdManager.register(AppCommand(
+      id: 'editor.mode.render_all',
+      title: 'Tout en Rendu',
+      description: 'Passer tous les onglets en mode lecture',
+      icon: Icons.chrome_reader_mode,
+      execute: () {
+        EditorManager.instance.setAllFilesMode(EditorMode.render);
       },
     ));
   }
@@ -182,6 +233,13 @@ class _MunninAppState extends State<MunninApp> {
 
     try {
       final newWikiPath = initWiki(parentPath: parentPath, name: name.trim());
+      
+      // --- Génération de la documentation / tutoriel par défaut ---
+      final docFile = File('$newWikiPath${Platform.pathSeparator}welcome.md');
+      final templateContent = await rootBundle.loadString('assets/templates/welcome.md');
+      await docFile.writeAsString(templateContent);
+      // -----------------------------------------------------------
+
       _openWiki(newWikiPath);
     } catch (e) {
       if (context.mounted) {
@@ -195,13 +253,79 @@ class _MunninAppState extends State<MunninApp> {
     }
   }
 
+  Future<void> _pullWelcomeFile() async {
+    if (_currentWikiPath == null) return;
+    
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+
+    final docFile = File('$_currentWikiPath${Platform.pathSeparator}welcome.md');
+    
+    if (await docFile.exists()) {
+      if (!context.mounted) return;
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Fichier existant'),
+          content: const Text('Un fichier welcome.md existe déjà à la racine de ce wiki. Voulez-vous vraiment l\'écraser avec la dernière version du tutoriel ?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+              ),
+              child: const Text('Écraser'),
+            ),
+          ],
+        ),
+      );
+      
+      if (confirm != true) return;
+    }
+    
+    try {
+      final templateContent = await rootBundle.loadString('assets/templates/welcome.md');
+      await docFile.writeAsString(templateContent);
+      
+      // Met à jour la version en mémoire si le fichier est déjà ouvert
+      EditorManager.instance.updateFileContent(docFile.path, templateContent);
+      EditorManager.instance.markAsClean(docFile.path);
+      
+      // Rafraîchit l'explorateur pour qu'il affiche le fichier nouvellement créé
+      _fileExplorerKey.currentState?.loadTree();
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Fichier welcome.md récupéré avec succès !')),
+        );
+      }
+      
+      EditorManager.instance.openFile(docFile.path);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de la récupération: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _openExistingWiki() async {
-    String? path = await FilePicker.getDirectoryPath(
-      dialogTitle: 'Ouvrir un Wiki existant',
+    FilePickerResult? result = await FilePicker.pickFiles(
+      dialogTitle: 'Sélectionner l\'ancre (.crow) du Wiki',
+      type: FileType.custom,
+      allowedExtensions: ['crow'],
     );
 
-    if (path != null) {
-      _openWiki(path);
+    if (result != null && result.files.single.path != null) {
+      final String crowPath = result.files.single.path!;
+      final String wikiPath = File(crowPath).parent.path;
+      _openWiki(wikiPath);
     }
   }
 
@@ -209,8 +333,14 @@ class _MunninAppState extends State<MunninApp> {
     final settings = loadSettings();
     setState(() {
       _themeIndex = settings.themeIndex;
-      _recentWikis = settings.recentWikis;
+      // Ne garde que les dossiers qui existent encore sur le disque
+      _recentWikis = settings.recentWikis.where((path) {
+        return Directory(path).existsSync();
+      }).toList();
     });
+    
+    // Note: Pour nettoyer le fichier de config JSON définitivement, il faudra 
+    // exposer une méthode `remove_recent_wiki` ou `save_settings` côté Rust (RustLib).
   }
 
   void _setTheme(int index) {
@@ -276,6 +406,7 @@ class _MunninAppState extends State<MunninApp> {
                       onOpenEditor: _openEditor,
                       rightSidebar: _currentWikiPath != null
                         ? FileExplorer(
+                            key: _fileExplorerKey,
                             rootPath: _currentWikiPath!,
                             onFileSelected: (path) {
                               EditorManager.instance.openFile(path);

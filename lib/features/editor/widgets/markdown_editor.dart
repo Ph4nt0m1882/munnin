@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:munnin/features/editor/editor.dart';
 
@@ -103,25 +104,96 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
         
         // Editor Area
         Expanded(
-          child: Container(
+          child: Material(
             color: theme.scaffoldBackgroundColor,
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _textController,
-              onChanged: _onContentChanged,
-              maxLines: null,
-              expands: true,
-              keyboardType: TextInputType.multiline,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontFamily: 'Consolas', // Police monospaced pour markdown (à peaufiner plus tard)
-                fontSize: 14,
-                height: 1.5,
-              ),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: manager.activeFile?.mode == EditorMode.render
+                ? MarkdownRenderer(
+                    content: manager.activeFile?.content ?? '',
+                    rootPath: manager.activeFilePath,
+                    onCheckboxToggled: (id, newState) async {
+                      final activePath = manager.activeFilePath;
+                      if (activePath == null) return;
+                      final memoryContent = manager.activeFile?.content ?? '';
+                      
+                      final regExp = RegExp(r'^(\s*-\s+)\[([ xXvV\*])\]', multiLine: true);
+                      final matches = regExp.allMatches(memoryContent).toList();
+                      
+                      if (id >= 0 && id < matches.length) {
+                        final memMatch = matches[id];
+                        final prefix = memMatch.group(1)!;
+                        
+                        // Calcul de la ligne exacte
+                        int lineStart = memoryContent.lastIndexOf('\n', memMatch.start);
+                        lineStart = lineStart == -1 ? 0 : lineStart + 1;
+                        int lineEnd = memoryContent.indexOf('\n', memMatch.end);
+                        if (lineEnd == -1) lineEnd = memoryContent.length;
+                        final originalLine = memoryContent.substring(lineStart, lineEnd);
+                        
+                        int lineNumber = '\n'.allMatches(memoryContent.substring(0, memMatch.start)).length;
+
+                        final wasDirty = manager.activeFile?.isDirty ?? false;
+
+                        // Remplacement en mémoire
+                        final newMemoryContent = memoryContent.replaceRange(memMatch.start, memMatch.end, '$prefix[$newState]');
+                        EditorManager.instance.updateFileContent(activePath, newMemoryContent);
+                        
+                        // Tentative de sauvegarde silencieuse sur le disque
+                        try {
+                          final file = File(activePath);
+                          if (await file.exists()) {
+                            if (!wasDirty) {
+                              // Le fichier n'avait aucune autre modification. On sauvegarde tout et on efface l'astérisque.
+                              await file.writeAsString(newMemoryContent);
+                              EditorManager.instance.markAsClean(activePath);
+                            } else {
+                              // Le fichier a d'autres modifications en cours. Sauvegarde partielle de la ligne uniquement.
+                              final diskContent = await file.readAsString();
+                              List<String> diskLines = diskContent.split('\n');
+                              
+                              if (lineNumber < diskLines.length) {
+                                String cleanDiskLine = diskLines[lineNumber].replaceAll('\r', '');
+                                String cleanOriginalLine = originalLine.replaceAll('\r', '');
+                                
+                                // Si la ligne correspond exactement, on remplace sur le disque
+                                if (cleanDiskLine == cleanOriginalLine) {
+                                  bool hasCr = diskLines[lineNumber].endsWith('\r');
+                                  String newLine = cleanOriginalLine.replaceFirst(
+                                    RegExp(r'\[([ xXvV\*])\]'), 
+                                    '[$newState]'
+                                  );
+                                  if (hasCr) newLine += '\r';
+                                  
+                                  diskLines[lineNumber] = newLine;
+                                  await file.writeAsString(diskLines.join('\n'));
+                                }
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          print("Erreur de sauvegarde silencieuse: $e");
+                        }
+                      }
+                    },
+                  )
+              : TextField(
+                  controller: _textController,
+                  onChanged: _onContentChanged,
+                  maxLines: null,
+                  expands: true,
+                  keyboardType: TextInputType.multiline,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontFamily: 'Consolas', // Police monospaced pour markdown (à peaufiner plus tard)
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
             ),
           ),
         ),
@@ -152,7 +224,7 @@ class _EditorTab extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: bgColor,
           border: Border(
@@ -166,6 +238,25 @@ class _EditorTab extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Icône de mode
+            InkWell(
+              onTap: () {
+                final newMode = file.mode == EditorMode.markdown 
+                    ? EditorMode.render 
+                    : EditorMode.markdown;
+                EditorManager.instance.setFileMode(file.path, newMode);
+              },
+              borderRadius: BorderRadius.circular(4),
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6.0),
+                child: Icon(
+                  file.mode == EditorMode.render ? Icons.preview : Icons.code,
+                  size: 14,
+                  color: textColor?.withValues(alpha: 0.8),
+                ),
+              ),
+            ),
+            // Nom du fichier
             Text(
               file.name + (file.isDirty ? ' *' : ''),
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -175,6 +266,7 @@ class _EditorTab extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+            // Bouton fermer
             InkWell(
               onTap: onClose,
               borderRadius: BorderRadius.circular(12),
