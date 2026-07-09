@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:munnin/theme/builtin_themes.dart';
-import 'package:munnin/ui/settings/theme_preview_card.dart';
+import 'package:munnin/core/theme/theme.dart';
+import 'package:munnin/features/settings/settings.dart';
 
 class ThemeSelectionScreen extends StatefulWidget {
   final int initialIndex;

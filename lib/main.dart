@@ -4,17 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:munnin/src/rust/frb_generated.dart';
 import 'package:munnin/src/rust/api/settings.dart';
-import 'package:munnin/theme/builtin_themes.dart';
-import 'package:munnin/theme/theme_manager.dart';
-import 'package:munnin/ui/top_bar.dart';
-import 'package:munnin/ui/responsive_layout.dart';
-import 'package:munnin/ui/bottom_navigation.dart';
-import 'package:munnin/ui/settings/theme_selection_screen.dart';
-import 'package:munnin/ui/layout/draggable_window.dart';
-import 'package:munnin/ui/editor/welcome_screen.dart';
-import 'package:munnin/core/commands/app_command.dart';
-import 'package:munnin/core/commands/command_manager.dart';
-import 'package:munnin/ui/commands/top_bar_search.dart';
+import 'package:munnin/core/theme/theme.dart';
+import 'package:munnin/features/navigation/navigation.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:munnin/src/rust/api/simple.dart';
+import 'package:munnin/features/settings/settings.dart';
+import 'package:munnin/features/editor/editor.dart';
+import 'package:munnin/features/explorer/explorer.dart';
+import 'package:munnin/core/commands/commands.dart';
 import 'package:window_manager/window_manager.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -70,9 +67,18 @@ class _MunninAppState extends State<MunninApp> {
 
   bool _handleGlobalKeys(KeyEvent event) {
     if (event is KeyDownEvent) {
-      if (HardwareKeyboard.instance.isControlPressed && event.logicalKey == LogicalKeyboardKey.keyK) {
-        CommandManager.instance.execute('app.command_palette');
-        return true;
+      if (HardwareKeyboard.instance.isControlPressed) {
+        if (event.logicalKey == LogicalKeyboardKey.keyK) {
+          CommandManager.instance.execute('app.command_palette');
+          return true;
+        } else if (event.logicalKey == LogicalKeyboardKey.keyS) {
+          if (HardwareKeyboard.instance.isShiftPressed) {
+            CommandManager.instance.execute('file.save_all');
+          } else {
+            CommandManager.instance.execute('file.save');
+          }
+          return true;
+        }
       }
     }
     return false;
@@ -99,7 +105,104 @@ class _MunninAppState extends State<MunninApp> {
       },
     ));
     
-    // On pourra rajouter wiki.create une fois qu'on saura appeler le picker sans WelcomeScreen
+    cmdManager.register(AppCommand(
+      id: 'wiki.create',
+      title: 'Nouveau Wiki...',
+      description: 'Créer un nouveau répertoire de connaissances',
+      icon: Icons.create_new_folder,
+      execute: _createNewWiki,
+    ));
+
+    cmdManager.register(AppCommand(
+      id: 'wiki.open',
+      title: 'Ouvrir un Wiki...',
+      description: 'Ouvrir un répertoire existant',
+      icon: Icons.folder_open,
+      execute: _openExistingWiki,
+    ));
+
+    cmdManager.register(AppCommand(
+      id: 'file.save',
+      title: 'Sauvegarder',
+      description: 'Sauvegarde le fichier actif',
+      icon: Icons.save,
+      shortcutLabel: 'Ctrl+S',
+      execute: () {
+        EditorManager.instance.saveActiveFile();
+      },
+    ));
+
+    cmdManager.register(AppCommand(
+      id: 'file.save_all',
+      title: 'Sauvegarder tout',
+      description: 'Sauvegarde tous les fichiers modifiés',
+      icon: Icons.save_alt,
+      shortcutLabel: 'Ctrl+Shift+S',
+      execute: () {
+        EditorManager.instance.saveAll();
+      },
+    ));
+  }
+
+  Future<void> _createNewWiki() async {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+
+    final nameController = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nouveau Wiki'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(hintText: 'Nom du wiki'),
+          autofocus: true,
+          onSubmitted: (val) => Navigator.pop(context, val),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, nameController.text),
+            child: const Text('Créer'),
+          ),
+        ],
+      ),
+    );
+
+    if (name == null || name.trim().isEmpty) return;
+
+    String? parentPath = await FilePicker.getDirectoryPath(
+      dialogTitle: 'Sélectionner le dossier parent du Wiki',
+    );
+
+    if (parentPath == null) return;
+
+    try {
+      final newWikiPath = initWiki(parentPath: parentPath, name: name.trim());
+      _openWiki(newWikiPath);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openExistingWiki() async {
+    String? path = await FilePicker.getDirectoryPath(
+      dialogTitle: 'Ouvrir un Wiki existant',
+    );
+
+    if (path != null) {
+      _openWiki(path);
+    }
   }
 
   void _loadInitialSettings() {
@@ -171,29 +274,20 @@ class _MunninAppState extends State<MunninApp> {
                     ResponsiveLayout(
                       onThemeToggle: _openThemeSettings,
                       onOpenEditor: _openEditor,
+                      rightSidebar: _currentWikiPath != null
+                        ? FileExplorer(
+                            rootPath: _currentWikiPath!,
+                            onFileSelected: (path) {
+                              EditorManager.instance.openFile(path);
+                            },
+                          )
+                        : null,
                       child: _currentWikiPath == null 
                         ? WelcomeScreen(
                             onWikiOpened: _openWiki,
                             recentWikis: _recentWikis,
                           )
-                        : Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Wiki ouvert !',
-                                  style: themeData.textTheme.headlineMedium,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _currentWikiPath!,
-                                  style: themeData.textTheme.bodyLarge?.copyWith(
-                                    color: themeData.colorScheme.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        : const MarkdownEditor(),
                     ),
                     
                     // Couche 1 : Les Fenêtres Flottantes (In-App Windows)

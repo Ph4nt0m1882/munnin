@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:munnin/ui/left_sidebar.dart';
+import 'package:munnin/features/navigation/navigation.dart';
 
 class ResponsiveLayout extends StatelessWidget {
   final Widget child; // La zone centrale (l'éditeur)
+  final Widget? rightSidebar; // Optionnel : l'explorateur à droite
   final VoidCallback onThemeToggle;
   final VoidCallback onOpenEditor;
   
@@ -12,6 +13,7 @@ class ResponsiveLayout extends StatelessWidget {
   const ResponsiveLayout({
     super.key,
     required this.child,
+    this.rightSidebar,
     required this.onThemeToggle,
     required this.onOpenEditor,
   });
@@ -36,6 +38,10 @@ class ResponsiveLayout extends StatelessWidget {
               ),
               VerticalDivider(width: 1, color: themeData.dividerColor),
               Expanded(child: child),
+              if (rightSidebar != null) ...[
+                VerticalDivider(width: 1, color: themeData.dividerColor),
+                rightSidebar!,
+              ],
             ],
           );
         }

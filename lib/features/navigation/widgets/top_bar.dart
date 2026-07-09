@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:munnin/ui/commands/top_bar_search.dart';
+import 'package:munnin/features/navigation/navigation.dart';
 import 'package:window_manager/window_manager.dart';
 
 class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {

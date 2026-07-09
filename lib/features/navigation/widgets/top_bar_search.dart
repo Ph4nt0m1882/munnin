@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:munnin/core/commands/app_command.dart';
-import 'package:munnin/core/commands/command_manager.dart';
+import 'package:munnin/core/commands/commands.dart';
 
 final FocusNode globalSearchFocusNode = FocusNode();
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:munnin/core/commands/app_command.dart';
+import 'package:munnin/core/commands/commands.dart';
 
 class CommandManager extends ChangeNotifier {
   static final CommandManager instance = CommandManager._();

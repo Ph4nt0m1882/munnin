@@ -15,7 +15,7 @@ pub fn init_app() {
 pub fn init_wiki(parent_path: String, name: String) -> Result<String, String> {
     let parent_dir = std::path::Path::new(&parent_path);
     let wiki_dir = parent_dir.join(&name);
-    let crow_dir = wiki_dir.join(".crow");
+    let crow_file = wiki_dir.join(".crow");
 
     // Vérifie si le dossier du wiki existe déjà
     if wiki_dir.exists() {
@@ -27,9 +27,9 @@ pub fn init_wiki(parent_path: String, name: String) -> Result<String, String> {
         return Err(format!("Impossible de créer le dossier du wiki: {}", e));
     }
 
-    // Crée le dossier caché .crow à l'intérieur
-    if let Err(e) = std::fs::create_dir_all(&crow_dir) {
-        return Err(format!("Impossible de créer le dossier de configuration .crow: {}", e));
+    // Crée le fichier caché .crow à l'intérieur
+    if let Err(e) = std::fs::File::create(&crow_file) {
+        return Err(format!("Impossible de créer le fichier d'ancrage .crow: {}", e));
     }
 
     // On pourrait ajouter des fichiers initiaux ici (ex: un index.md ou settings.json)
