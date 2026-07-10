@@ -148,14 +148,31 @@ Les tableaux épousent automatiquement la largeur de l'écran avec une alternanc
 | :--- | :--- | :--- |
 | **Checkboxes interactives** | Clics souris | [v] |
 | **Images locales** | Chemins relatifs | [v] |
-| **Blocs de code** | À venir | [ ] |
+| **Blocs de code interactifs** | Clic droit (copier), Clic gauche (sélection) | [v] |
 
-## 3. Images Locales Résolues
+## 3. Admonitions (Blocs d'alerte)
+Munnin supporte nativement les admonitions classiques style GitHub, mais va beaucoup plus loin avec des admonitions personnalisables !
+
+**Classique :**
+> [!NOTE]
+> Ceci est une note standard, avec une continuité visuelle parfaite.
+
+**Personnalisable :**
+Vous pouvez choisir l'icône, le titre et la couleur de la bordure (`blue`, `red`, `green`, `purple`, `orange`...) :
+> [!{lucide-play}{Nouveau bloc}{purple}]
+> Un bloc personnalisé avec une icône et une bordure violette !
+
+## 4. Sélecteur d'Icônes (Icon Picker)
+Pour vous aider à personnaliser vos documents, Munnin intègre un sélecteur de milliers d'icônes (Lucide et Simple Icons) et de symboles spéciaux (©, ™, ♥).
+- Cliquez sur l'icône **😃** dans la barre d'outils rétractable au-dessus de l'éditeur ou utilisez `Ctrl + Maj + I`.
+- Double-cliquez sur une icône pour insérer son identifiant directement, ou utilisez un simple clic pour la copier dans votre presse-papier !
+
+## 5. Images Locales Résolues
 Fini les maux de tête avec les images locales ! Munnin résout les chemins relatifs automatiquement depuis l'emplacement du fichier en cours de lecture.
 ![Exemple Image Inexistante](images/test.png)
 *(Un joli encart d'erreur vous avertit si l'image n'est pas trouvée, sans casser la page)*
 
-## 4. Balises Personnalisées
+## 6. Balises Personnalisées
 Munnin intercepte des syntaxes Markdown uniques, comme le double-point d'exclamation :
 !![Fichier Spécial](mon_fichier.pdf)
 

@@ -84,6 +84,56 @@ class EditorManager extends ChangeNotifier {
     }
   }
 
+  /// Remplace un bloc de code spécifique dans le fichier
+  void replaceCodeBlock(String path, String oldCode, String newCode, String oldLang, String newLang) {
+    final file = _openedFiles.where((f) => f.path == path).firstOrNull;
+    if (file != null) {
+      String content = file.content;
+      
+      // Nettoyage des retours chariot pour la recherche (au cas où)
+      String searchCode = oldCode.endsWith('\n') ? oldCode.substring(0, oldCode.length - 1) : oldCode;
+      searchCode = searchCode.replaceAll('\r\n', '\n');
+      
+      // Construction d'une RegEx tolérante aux fins de lignes (\n ou \r\n)
+      String escapedSearch = RegExp.escape(searchCode).replaceAll('\n', r'\r?\n');
+      
+      final match = RegExp(escapedSearch).firstMatch(content);
+      if (match != null) {
+        int idx = match.start;
+        int endIdx = match.end;
+        
+        int startBackticks = content.lastIndexOf('```', idx);
+        if (startBackticks != -1) {
+          int endOfLine = content.indexOf('\n', startBackticks);
+          if (endOfLine != -1 && endOfLine <= idx) {
+            String languageLine = content.substring(startBackticks, endOfLine);
+            bool hasEdit = languageLine.contains('{edit}');
+            String baseLang = newLang.replaceAll('{edit}', '').trim();
+            // On conserve le nombre exact de backticks originaux (3 ou 4)
+            String backticks = languageLine.split(RegExp(r'[a-zA-Z]')).first.trim();
+            if (backticks.isEmpty) backticks = '```';
+            String newLanguageLine = '$backticks$baseLang${hasEdit ? ' {edit}' : ''}';
+            
+            int shift = newLanguageLine.length - (endOfLine - startBackticks);
+            content = content.replaceRange(startBackticks, endOfLine, newLanguageLine);
+            content = content.replaceRange(idx + shift, endIdx + shift, newCode);
+            
+            updateFileContent(path, content);
+            return;
+          }
+        }
+        
+        // Si les backticks n'ont pas été trouvés mais que le code l'a été (fallback)
+        content = content.replaceRange(match.start, match.end, newCode);
+        updateFileContent(path, content);
+        return;
+      }
+      
+      // Fallback final
+      updateFileContent(path, content.replaceFirst(oldCode, newCode));
+    }
+  }
+
   /// Sauvegarde le fichier actif
   Future<void> saveActiveFile() async {
     final file = activeFile;

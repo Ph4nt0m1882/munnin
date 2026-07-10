@@ -39,7 +39,6 @@ dependencies:
   flutter_rust_bridge: 2.11.1
   flutter_quill: ^11.5.1
   google_fonts: ^8.1.0
-  lucide_icons: ^0.257.0
   window_manager: ^0.5.2
   flutter_svg: ^2.3.0
   docking: ^1.16.2
@@ -48,6 +47,10 @@ dependencies:
   flutter_html: ^3.0.0
   url_launcher: ^6.3.2
   flutter_html_table: ^3.0.0
+  flutter_highlighter: ^0.1.1
+  highlighter: ^0.1.1
+  simple_icons: ^16.23.0
+  flutter_lucide: ^1.11.0
 
 dev_dependencies:
   flutter_test:

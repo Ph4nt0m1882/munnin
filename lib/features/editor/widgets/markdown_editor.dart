@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:munnin/features/editor/editor.dart';
+import 'package:munnin/features/editor/widgets/icon_picker_widget.dart';
+import 'package:munnin/features/editor/widgets/editor_toolbar.dart';
 
 class MarkdownEditor extends StatefulWidget {
   const MarkdownEditor({super.key});
@@ -56,6 +59,31 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
     }
   }
 
+  void _insertText(String text) {
+    final selection = _textController.selection;
+    if (selection.start >= 0) {
+      final newText = _textController.text.replaceRange(selection.start, selection.end, text);
+      _textController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: selection.start + text.length),
+      );
+      _onContentChanged(newText);
+    } else {
+      final newText = _textController.text + text;
+      _textController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+      _onContentChanged(newText);
+    }
+  }
+
+  void _openIconPicker() {
+    IconPickerWidget.show(context, (iconName, library) {
+      _insertText(iconName);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -81,6 +109,11 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Global Editor Toolbar (always visible above tabs)
+        EditorToolbar(
+          onIconPickerPressed: _openIconPicker,
+        ),
+        
         // Tabs
         Container(
           height: 40,
@@ -111,7 +144,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
               child: manager.activeFile?.mode == EditorMode.render
                 ? MarkdownRenderer(
                     content: manager.activeFile?.content ?? '',
-                    rootPath: manager.activeFilePath,
+                    filePath: manager.activeFilePath,
                     onCheckboxToggled: (id, newState) async {
                       final activePath = manager.activeFilePath;
                       if (activePath == null) return;
@@ -177,21 +210,29 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
                       }
                     },
                   )
-              : TextField(
-                  controller: _textController,
-                  onChanged: _onContentChanged,
-                  maxLines: null,
-                  expands: true,
-                  keyboardType: TextInputType.multiline,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontFamily: 'Consolas', // Police monospaced pour markdown (à peaufiner plus tard)
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
+              : CallbackShortcuts(
+                  bindings: {
+                    const SingleActivator(LogicalKeyboardKey.keyI, control: true, shift: true): _openIconPicker,
+                  },
+                  child: Focus(
+                    autofocus: true,
+                    child: TextField(
+                      controller: _textController,
+                      onChanged: _onContentChanged,
+                      maxLines: null,
+                      expands: true,
+                      keyboardType: TextInputType.multiline,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontFamily: 'Consolas', // Police monospaced pour markdown (à peaufiner plus tard)
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
                   ),
                 ),
             ),
