@@ -11,7 +11,7 @@ class AppSizes {
   static const double iconSmall = 14.0;
   static const double iconMedium = 18.0;
   static const double iconLarge = 24.0;
-  
+
   static const double itemHeightCompact = 24.0;
   static const double topBarHeight = 40.0;
   static const double bottomBarHeight = 50.0;

@@ -3,20 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:munnin/features/editor/widgets/interactive_code_block.dart';
-import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:munnin/features/editor/utils/custom_markdown_syntax.dart';
 import 'package:munnin/features/editor/utils/color_parser.dart';
 import 'package:munnin/features/editor/utils/icon_parser.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
+import 'package:munnin/features/editor/services/link_preview_manager.dart';
 
 /// Widget responsable du rendu HTML à partir du Markdown brut.
 class MarkdownRenderer extends StatelessWidget {
   /// Le texte brut en Markdown.
   final String content;
-  
+
   final String? filePath;
-  
+
   /// Callback déclenché lorsqu'une case à cocher est cliquée.
   final void Function(int id, String newState)? onCheckboxToggled;
 
@@ -34,12 +34,12 @@ class MarkdownRenderer extends StatelessWidget {
     // 0. Pré-traitement pour intercepter les cases à cocher personnalisées
     int checkboxId = 0;
     final String preprocessedContent = content.trim().replaceAllMapped(
-      RegExp(r'^(\s*-\s+)\[([ xXvV\*])\]', multiLine: true), 
+      RegExp(r'^(\s*-\s+)\[([ xXvV\*])\]', multiLine: true),
       (match) {
         final prefix = match.group(1)!;
         final state = match.group(2)!.toLowerCase();
         return '$prefix<munnin-checkbox id="${checkboxId++}" state="$state"></munnin-checkbox>';
-      }
+      },
     );
 
     // 0.5 Pré-traitement pour préserver l'attribut {edit} des blocs de code
@@ -51,7 +51,9 @@ class MarkdownRenderer extends StatelessWidget {
     // 1. Conversion Markdown -> HTML
     final String htmlContent = md.markdownToHtml(
       preprocessedContent2,
-      extensionSet: md.ExtensionSet.gitHubFlavored, // Support des tables, sans les alertes web pour utiliser notre TagExtension
+      extensionSet: md
+          .ExtensionSet
+          .gitHubFlavored, // Support des tables, sans les alertes web pour utiliser notre TagExtension
       inlineSyntaxes: [
         DoubleBangImageSyntax(), // Notre syntaxe custom !![]()
       ],
@@ -62,32 +64,40 @@ class MarkdownRenderer extends StatelessWidget {
       child: Html(
         data: htmlContent,
         style: _buildHtmlStyles(theme),
-        extensions: _buildHtmlExtensions(theme, filePath ?? '', onCheckboxToggled),
+        extensions: _buildHtmlExtensions(
+          theme,
+          filePath ?? '',
+          onCheckboxToggled,
+        ),
         onLinkTap: (url, attributes, element) async {
           if (url == null) return;
-          
+
           // Vérifie si c'est un lien web classique ou un lien de fichier explicite
-          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file://')) {
+          if (url.startsWith('http://') ||
+              url.startsWith('https://') ||
+              url.startsWith('file://')) {
             final uri = Uri.parse(url);
             if (await canLaunchUrl(uri)) {
               await launchUrl(uri);
             }
-          } 
+          }
           // Vérifie si c'est un chemin absolu Windows (ex: C:\Dossier ou \\Serveur\Dossier)
-          else if (url.contains(RegExp(r'^[a-zA-Z]:\\')) || url.startsWith(r'\\')) {
+          else if (url.contains(RegExp(r'^[a-zA-Z]:\\')) ||
+              url.startsWith(r'\\')) {
             final uri = Uri.file(url);
             if (await canLaunchUrl(uri)) {
               await launchUrl(uri);
             }
-          } 
+          }
           // Sinon c'est probablement un lien wiki interne (relatif)
           else {
-            print("Lien wiki interne (à gérer plus tard) : $url");
+            debugPrint("Lien wiki interne (à gérer plus tard) : $url");
           }
         },
       ),
     );
   }
+
   Map<String, Style> _buildHtmlStyles(ThemeData theme) {
     return {
       "body": Style(
@@ -108,6 +118,11 @@ class MarkdownRenderer extends StatelessWidget {
         padding: HtmlPaddings.symmetric(horizontal: 4, vertical: 2),
         fontFamily: 'Consolas',
       ),
+      "mark": Style(
+        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.4),
+        color: theme.colorScheme.primary,
+        fontWeight: FontWeight.bold,
+      ),
       "pre": Style(
         backgroundColor: theme.colorScheme.surfaceContainerHighest,
         padding: HtmlPaddings.all(8),
@@ -120,40 +135,116 @@ class MarkdownRenderer extends StatelessWidget {
       "blockquote": Style(
         margin: Margins.symmetric(vertical: 8),
         padding: HtmlPaddings.symmetric(horizontal: 16, vertical: 8),
-        border: Border(left: BorderSide(color: theme.colorScheme.primary, width: 4)),
+        border: Border(
+          left: BorderSide(color: theme.colorScheme.primary, width: 4),
+        ),
         backgroundColor: theme.colorScheme.surfaceContainerHighest,
         fontStyle: FontStyle.italic,
       ),
-      ".task-list-item": Style(
-        listStyleType: ListStyleType.none,
-      ),
+      ".task-list-item": Style(listStyleType: ListStyleType.none),
       "table": Style(
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5), width: 1),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.5),
+          width: 1,
+        ),
         margin: Margins.only(bottom: 16.0),
         backgroundColor: theme.colorScheme.surface,
       ),
       "th": Style(
         padding: HtmlPaddings.symmetric(horizontal: 16, vertical: 12),
-        backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.4,
+        ),
         border: Border(bottom: BorderSide(color: theme.dividerColor, width: 2)),
         fontWeight: FontWeight.bold,
       ),
       "td": Style(
         padding: HtmlPaddings.symmetric(horizontal: 16, vertical: 12),
-        border: Border(bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5), width: 1)),
+        border: Border(
+          bottom: BorderSide(
+            color: theme.dividerColor.withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
       ),
     };
   }
 
-  List<HtmlExtension> _buildHtmlExtensions(ThemeData theme, String filePath, void Function(int, String)? onCheckboxToggled) {
+  List<HtmlExtension> _buildHtmlExtensions(
+    ThemeData theme,
+    String filePath,
+    void Function(int, String)? onCheckboxToggled,
+  ) {
     return [
+      TagExtension(
+        tagsToExtend: {"a"},
+        builder: (extensionContext) {
+          final element = extensionContext.element;
+          final href = element!.attributes['href'] ?? '';
+          final text = element.innerHtml;
+
+          bool isHovered = false;
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return MouseRegion(
+                cursor: SystemMouseCursors.click,
+                onEnter: (e) {
+                  setState(() => isHovered = true);
+                  LinkPreviewManager().show(
+                    context,
+                    href,
+                    e.position,
+                    filePath,
+                  );
+                },
+                onExit: (e) {
+                  setState(() => isHovered = false);
+                  LinkPreviewManager().hide();
+                },
+                child: GestureDetector(
+                  onTap: () async {
+                    final url = href;
+                    if (url.startsWith('http://') ||
+                        url.startsWith('https://') ||
+                        url.startsWith('file://')) {
+                      final uri = Uri.parse(url);
+                      if (await canLaunchUrl(uri)) await launchUrl(uri);
+                    } else if (url.contains(RegExp(r'^[a-zA-Z]:\\')) ||
+                        url.startsWith(r'\\')) {
+                      final uri = Uri.file(url);
+                      if (await canLaunchUrl(uri)) await launchUrl(uri);
+                    } else {
+                      debugPrint(
+                        "Lien wiki interne (à gérer plus tard) : $url",
+                      );
+                    }
+                  },
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      color: theme.colorScheme.secondary,
+                      decoration: isHovered
+                          ? TextDecoration.underline
+                          : TextDecoration.none,
+                      fontFamily: theme.textTheme.bodyMedium?.fontFamily,
+                      fontSize: 14.0,
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
       TagExtension(
         tagsToExtend: {"pre"},
         builder: (extensionContext) {
           final element = extensionContext.element;
           if (element == null) return const SizedBox.shrink();
 
-          final codeElement = element.children.where((e) => e.localName == 'code').firstOrNull;
+          final codeElement = element.children
+              .where((e) => e.localName == 'code')
+              .firstOrNull;
           if (codeElement == null) return const SizedBox.shrink();
 
           String className = codeElement.className;
@@ -161,7 +252,9 @@ class MarkdownRenderer extends StatelessWidget {
           bool isEditable = false;
 
           if (className.contains('language-')) {
-            final match = RegExp(r'language-([a-zA-Z0-9_\-]+)').firstMatch(className);
+            final match = RegExp(
+              r'language-([a-zA-Z0-9_\-]+)',
+            ).firstMatch(className);
             if (match != null) {
               language = match.group(1) ?? '';
               if (language.endsWith('-edit')) {
@@ -170,7 +263,7 @@ class MarkdownRenderer extends StatelessWidget {
               }
             }
           }
-          
+
           if (className.contains('{edit}')) {
             isEditable = true;
           }
@@ -201,7 +294,9 @@ class MarkdownRenderer extends StatelessWidget {
           bool isEven = false;
 
           for (var row in rows) {
-            final cells = row.children.where((e) => e.localName == 'td' || e.localName == 'th').toList();
+            final cells = row.children
+                .where((e) => e.localName == 'td' || e.localName == 'th')
+                .toList();
             if (cells.isEmpty) continue;
 
             final tableCells = <Widget>[];
@@ -210,19 +305,36 @@ class MarkdownRenderer extends StatelessWidget {
               final alignAttr = cell.attributes['align'] ?? '';
               final styleAttr = cell.attributes['style'] ?? '';
               TextAlign textAlign = TextAlign.left;
-              if (alignAttr == 'right' || styleAttr.contains('right')) textAlign = TextAlign.right;
-              else if (alignAttr == 'center' || styleAttr.contains('center')) textAlign = TextAlign.center;
+              if (alignAttr == 'right' || styleAttr.contains('right')) {
+                textAlign = TextAlign.right;
+              } else if (alignAttr == 'center' ||
+                  styleAttr.contains('center')) {
+                textAlign = TextAlign.center;
+              }
 
               tableCells.add(
                 Container(
-                  color: isHeader 
+                  color: isHeader
                       ? theme.colorScheme.surfaceContainerHighest
-                      : (isEven ? theme.colorScheme.surfaceContainerLow : theme.colorScheme.surface),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  alignment: textAlign == TextAlign.center ? Alignment.center : (textAlign == TextAlign.right ? Alignment.centerRight : Alignment.centerLeft),
+                      : (isEven
+                            ? theme.colorScheme.surfaceContainerLow
+                            : theme.colorScheme.surface),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  alignment: textAlign == TextAlign.center
+                      ? Alignment.center
+                      : (textAlign == TextAlign.right
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft),
                   child: DefaultTextStyle.merge(
                     textAlign: textAlign,
-                    style: TextStyle(fontWeight: isHeader ? FontWeight.bold : FontWeight.normal),
+                    style: TextStyle(
+                      fontWeight: isHeader
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
                     child: Html(
                       data: cell.innerHtml,
                       style: _buildHtmlStyles(theme),
@@ -278,13 +390,16 @@ class MarkdownRenderer extends StatelessWidget {
 
           return GestureDetector(
             onTap: () {
-              if (onCheckboxToggled != null) onCheckboxToggled(id, state == '*' ? ' ' : '*');
+              if (onCheckboxToggled != null)
+                onCheckboxToggled(id, state == '*' ? ' ' : '*');
             },
             onDoubleTap: () {
-              if (onCheckboxToggled != null) onCheckboxToggled(id, state == 'v' ? ' ' : 'v');
+              if (onCheckboxToggled != null)
+                onCheckboxToggled(id, state == 'v' ? ' ' : 'v');
             },
             onSecondaryTap: () {
-              if (onCheckboxToggled != null) onCheckboxToggled(id, state == 'x' ? ' ' : 'x');
+              if (onCheckboxToggled != null)
+                onCheckboxToggled(id, state == 'x' ? ' ' : 'x');
             },
             child: Padding(
               padding: const EdgeInsets.only(right: 8.0),
@@ -314,7 +429,10 @@ class MarkdownRenderer extends StatelessWidget {
                 Icon(Icons.download, color: theme.colorScheme.tertiary),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('Image spéciale : $alt\n($src)', style: TextStyle(color: theme.colorScheme.tertiary)),
+                  child: Text(
+                    'Image spéciale : $alt\n($src)',
+                    style: TextStyle(color: theme.colorScheme.tertiary),
+                  ),
                 ),
               ],
             ),
@@ -336,9 +454,16 @@ class MarkdownRenderer extends StatelessWidget {
           if (element == null) return const SizedBox.shrink();
 
           String html = element.innerHtml;
-          
-          final regexStandard = RegExp(r'^(\s*<p>\s*)?\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|DANGER)\]([^\n<]*)(.*)', dotAll: true, caseSensitive: false);
-          final regexCustom = RegExp(r'^(\s*<p>\s*)?\[!\{(.*?)\}\{(.*?)\}\{(.*?)\}\](.*)', dotAll: true);
+
+          final regexStandard = RegExp(
+            r'^(\s*<p>\s*)?\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|DANGER)\]([^\n<]*)(.*)',
+            dotAll: true,
+            caseSensitive: false,
+          );
+          final regexCustom = RegExp(
+            r'^(\s*<p>\s*)?\[!\{(.*?)\}\{(.*?)\}\{(.*?)\}\](.*)',
+            dotAll: true,
+          );
 
           final matchCustom = regexCustom.firstMatch(html);
           if (matchCustom != null) {
@@ -347,11 +472,14 @@ class MarkdownRenderer extends StatelessWidget {
             final title = matchCustom.group(3)?.trim() ?? '';
             final colorStr = matchCustom.group(4) ?? '';
             final remaining = matchCustom.group(5) ?? '';
-            
+
             final newHtml = prefix + remaining;
-            final color = parseColor(colorStr, fallback: theme.colorScheme.primary);
+            final color = parseColor(
+              colorStr,
+              fallback: theme.colorScheme.primary,
+            );
             final icon = parseIcon(iconStr);
-            
+
             return _buildAdmonitionWidget(
               theme: theme,
               color: color,
@@ -362,20 +490,20 @@ class MarkdownRenderer extends StatelessWidget {
               onCheckboxToggled: onCheckboxToggled,
             );
           }
-          
+
           final matchStd = regexStandard.firstMatch(html);
           if (matchStd != null) {
             final prefix = matchStd.group(1) ?? '';
             final type = matchStd.group(2)!.toUpperCase();
             final title = matchStd.group(3)?.trim() ?? '';
             final remaining = matchStd.group(4) ?? '';
-            
+
             final newHtml = prefix + remaining;
-            
+
             Color color = theme.colorScheme.primary;
             IconData icon = LucideIcons.info;
             String defaultTitle = type;
-            
+
             switch (type) {
               case 'NOTE':
                 color = Colors.blue;
@@ -399,7 +527,7 @@ class MarkdownRenderer extends StatelessWidget {
                 icon = LucideIcons.octagon;
                 break;
             }
-            
+
             return _buildAdmonitionWidget(
               theme: theme,
               color: color,
@@ -410,19 +538,25 @@ class MarkdownRenderer extends StatelessWidget {
               onCheckboxToggled: onCheckboxToggled,
             );
           }
-          
+
           // Standard blockquote fallback
           return Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: theme.colorScheme.primary, width: 4)),
+              border: Border(
+                left: BorderSide(color: theme.colorScheme.primary, width: 4),
+              ),
               color: theme.colorScheme.surfaceContainerHighest,
             ),
             child: Html(
               data: html,
               style: _buildHtmlStyles(theme),
-              extensions: _buildHtmlExtensions(theme, filePath, onCheckboxToggled),
+              extensions: _buildHtmlExtensions(
+                theme,
+                filePath,
+                onCheckboxToggled,
+              ),
             ),
           );
         },
@@ -453,7 +587,12 @@ class MarkdownRenderer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 12, top: 12, right: 12, bottom: 4),
+            padding: const EdgeInsets.only(
+              left: 12,
+              top: 12,
+              right: 12,
+              bottom: 4,
+            ),
             child: Row(
               children: [
                 Icon(icon, color: color, size: 20),
@@ -476,7 +615,11 @@ class MarkdownRenderer extends StatelessWidget {
             child: Html(
               data: htmlContent,
               style: _buildHtmlStyles(theme),
-              extensions: _buildHtmlExtensions(theme, filePath, onCheckboxToggled),
+              extensions: _buildHtmlExtensions(
+                theme,
+                filePath,
+                onCheckboxToggled,
+              ),
             ),
           ),
         ],
@@ -491,12 +634,18 @@ class MarkdownRenderer extends StatelessWidget {
 
     // Image Web
     if (src.startsWith('http://') || src.startsWith('https://')) {
-      return Image.network(src, errorBuilder: (context, error, stackTrace) => _buildErrorImage(src, theme));
+      return Image.network(
+        src,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildErrorImage(src, theme),
+      );
     }
 
     // Image locale
     String imagePath = src;
-    if (filePath != null && !File(src).isAbsolute && !src.startsWith('file://')) {
+    if (filePath != null &&
+        !File(src).isAbsolute &&
+        !src.startsWith('file://')) {
       // Si on a un chemin racine, on résout le chemin relatif proprement
       final parentDir = File(filePath!).parent.path;
       // Ajoute le séparateur à la fin pour que Uri.resolve fonctionne comme un dossier
@@ -508,7 +657,11 @@ class MarkdownRenderer extends StatelessWidget {
 
     final file = File(imagePath);
     if (file.existsSync()) {
-      return Image.file(file, errorBuilder: (context, error, stackTrace) => _buildErrorImage(src, theme));
+      return Image.file(
+        file,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildErrorImage(src, theme),
+      );
     } else {
       return _buildErrorImage(src, theme);
     }

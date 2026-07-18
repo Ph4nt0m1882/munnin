@@ -51,7 +51,14 @@ dependencies:
   highlighter: ^0.1.1
   simple_icons: ^16.23.0
   flutter_lucide: ^1.11.0
+  http: ^1.6.0
+  html: ^0.15.6
+  unicode_emojis: ^0.5.1
+  flutter_highlight: ^0.7.0
+  re_editor: ^0.10.0
+  re_highlight: ^0.0.3
 
+  path: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

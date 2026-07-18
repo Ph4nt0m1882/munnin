@@ -31,10 +31,12 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           // WindowCaption a besoin d'au moins ~150px pour ses boutons système.
-          // Si l'écran est plus petit, on force la largeur à 150px pour éviter que 
+          // Si l'écran est plus petit, on force la largeur à 150px pour éviter que
           // le "Expanded" interne de WindowCaption ne plante ou ne déborde.
-          final safeWidth = constraints.maxWidth < 150 ? 150.0 : constraints.maxWidth;
-          
+          final safeWidth = constraints.maxWidth < 150
+              ? 150.0
+              : constraints.maxWidth;
+
           return Stack(
             children: [
               // La barre native avec les boutons de fenêtre
@@ -49,11 +51,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                     backgroundColor: Colors.transparent,
                     title: Row(
                       children: [
-                        SvgPicture.asset(
-                          iconPath,
-                          width: 20,
-                          height: 20,
-                        ),
+                        SvgPicture.asset(iconPath, width: 20, height: 20),
                         const SizedBox(width: 12),
                         Text(
                           "Munnin",
@@ -69,7 +67,8 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
               // Le vrai champ de recherche (TopBarSearch) au centre
-              if (constraints.maxWidth > 600) // Ne l'afficher que s'il y a assez de place
+              if (constraints.maxWidth >
+                  600) // Ne l'afficher que s'il y a assez de place
                 Align(
                   alignment: Alignment.center,
                   child: Padding(

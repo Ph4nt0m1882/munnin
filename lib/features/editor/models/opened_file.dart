@@ -1,14 +1,12 @@
-enum EditorMode {
-  markdown,
-  render
-}
+enum EditorMode { markdown, render }
 
 class OpenedFile {
   final String path;
   String content;
   bool isDirty;
   EditorMode mode;
-  
+  TeleportTarget? teleportTarget;
+
   // Nom du fichier pour l'affichage dans l'onglet
   String get name {
     final fileName = path.split(RegExp(r'[/\\]')).last;
@@ -23,5 +21,13 @@ class OpenedFile {
     required this.content,
     this.isDirty = false,
     this.mode = EditorMode.markdown,
+    this.teleportTarget,
   });
+}
+
+class TeleportTarget {
+  final int startOffset;
+  final int endOffset;
+
+  TeleportTarget(this.startOffset, this.endOffset);
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:munnin/src/rust/api/search.dart' as rust_search;
 
 import 'package:munnin/features/editor/models/opened_file.dart';
 
@@ -41,7 +42,17 @@ class EditorManager extends ChangeNotifier {
       _activeFilePath = path;
       notifyListeners();
     } catch (e) {
-      print("Erreur lors de l'ouverture du fichier : $e");
+      debugPrint("Erreur lors de l'ouverture du fichier : $e");
+    }
+  }
+
+  /// Ouvre un fichier et scrolle jusqu'aux offsets donnés
+  Future<void> teleportTo(String path, int startOffset, int endOffset) async {
+    await openFile(path);
+    final file = _openedFiles.where((f) => f.path == path).firstOrNull;
+    if (file != null) {
+      file.teleportTarget = TeleportTarget(startOffset, endOffset);
+      notifyListeners();
     }
   }
 
@@ -85,23 +96,33 @@ class EditorManager extends ChangeNotifier {
   }
 
   /// Remplace un bloc de code spécifique dans le fichier
-  void replaceCodeBlock(String path, String oldCode, String newCode, String oldLang, String newLang) {
+  void replaceCodeBlock(
+    String path,
+    String oldCode,
+    String newCode,
+    String oldLang,
+    String newLang,
+  ) {
     final file = _openedFiles.where((f) => f.path == path).firstOrNull;
     if (file != null) {
       String content = file.content;
-      
+
       // Nettoyage des retours chariot pour la recherche (au cas où)
-      String searchCode = oldCode.endsWith('\n') ? oldCode.substring(0, oldCode.length - 1) : oldCode;
+      String searchCode = oldCode.endsWith('\n')
+          ? oldCode.substring(0, oldCode.length - 1)
+          : oldCode;
       searchCode = searchCode.replaceAll('\r\n', '\n');
-      
+
       // Construction d'une RegEx tolérante aux fins de lignes (\n ou \r\n)
-      String escapedSearch = RegExp.escape(searchCode).replaceAll('\n', r'\r?\n');
-      
+      String escapedSearch = RegExp.escape(
+        searchCode,
+      ).replaceAll('\n', r'\r?\n');
+
       final match = RegExp(escapedSearch).firstMatch(content);
       if (match != null) {
         int idx = match.start;
         int endIdx = match.end;
-        
+
         int startBackticks = content.lastIndexOf('```', idx);
         if (startBackticks != -1) {
           int endOfLine = content.indexOf('\n', startBackticks);
@@ -110,25 +131,37 @@ class EditorManager extends ChangeNotifier {
             bool hasEdit = languageLine.contains('{edit}');
             String baseLang = newLang.replaceAll('{edit}', '').trim();
             // On conserve le nombre exact de backticks originaux (3 ou 4)
-            String backticks = languageLine.split(RegExp(r'[a-zA-Z]')).first.trim();
+            String backticks = languageLine
+                .split(RegExp(r'[a-zA-Z]'))
+                .first
+                .trim();
             if (backticks.isEmpty) backticks = '```';
-            String newLanguageLine = '$backticks$baseLang${hasEdit ? ' {edit}' : ''}';
-            
+            String newLanguageLine =
+                '$backticks$baseLang${hasEdit ? ' {edit}' : ''}';
+
             int shift = newLanguageLine.length - (endOfLine - startBackticks);
-            content = content.replaceRange(startBackticks, endOfLine, newLanguageLine);
-            content = content.replaceRange(idx + shift, endIdx + shift, newCode);
-            
+            content = content.replaceRange(
+              startBackticks,
+              endOfLine,
+              newLanguageLine,
+            );
+            content = content.replaceRange(
+              idx + shift,
+              endIdx + shift,
+              newCode,
+            );
+
             updateFileContent(path, content);
             return;
           }
         }
-        
+
         // Si les backticks n'ont pas été trouvés mais que le code l'a été (fallback)
         content = content.replaceRange(match.start, match.end, newCode);
         updateFileContent(path, content);
         return;
       }
-      
+
       // Fallback final
       updateFileContent(path, content.replaceFirst(oldCode, newCode));
     }
@@ -154,9 +187,19 @@ class EditorManager extends ChangeNotifier {
       final file = File(openedFile.path);
       await file.writeAsString(openedFile.content);
       openedFile.isDirty = false;
+
+      if (openedFile.path.endsWith('.md')) {
+        rust_search.indexDocument(
+          filePath: openedFile.path,
+          rawMarkdown: openedFile.content,
+        );
+      }
+
       notifyListeners();
     } catch (e) {
-      print("Erreur lors de la sauvegarde de ${openedFile.path} : $e");
+      if (kDebugMode) {
+        print("Erreur lors de la sauvegarde de ${openedFile.path} : $e");
+      }
     }
   }
 
@@ -186,7 +229,7 @@ class EditorManager extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   /// Change le mode de tous les fichiers
   void setAllFilesMode(EditorMode mode) {
     bool changed = false;

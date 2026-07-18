@@ -11,7 +11,7 @@ class CrowStyleUI {
   final Brightness brightness;
 
   final String? baseThemeSeed; // "#000000"
-  final String? contrastSeed;  // "#6FC3DF"
+  final String? contrastSeed; // "#6FC3DF"
 
   const CrowStyleUI({
     required this.background,
@@ -28,7 +28,8 @@ class CrowStyleUI {
 
 /// Représente les règles de rendu (Markdown -> HTML) et le CSS associé
 class CrowStyleRender {
-  final Map<String, dynamic> elements; // ex: {'title': {'H1': '<span class="...">', ...}}
+  final Map<String, dynamic>
+  elements; // ex: {'title': {'H1': '<span class="...">', ...}}
   final bool fullRender;
   final Map<String, dynamic> blocCode;
   final String rawCss;

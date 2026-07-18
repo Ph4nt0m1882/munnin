@@ -13,7 +13,7 @@ class MobileBottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return BottomNavigationBar(
       backgroundColor: theme.colorScheme.surface,
       selectedItemColor: theme.colorScheme.primary,
@@ -26,10 +26,7 @@ class MobileBottomNavigation extends StatelessWidget {
           icon: Icon(Icons.folder_open),
           label: 'Fichiers',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.search),
-          label: 'Recherche',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Recherche'),
         BottomNavigationBarItem(
           icon: Icon(Icons.color_lens_outlined),
           label: 'Thème',

@@ -8,10 +8,15 @@ import 'package:munnin/core/theme/theme.dart';
 import 'package:munnin/features/navigation/navigation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:munnin/src/rust/api/simple.dart';
+import 'package:munnin/src/rust/api/search.dart' as rust_search;
 import 'package:munnin/features/settings/settings.dart';
 import 'package:munnin/features/editor/editor.dart';
 import 'package:munnin/features/explorer/explorer.dart';
 import 'package:munnin/core/commands/commands.dart';
+import 'package:munnin/features/home/widgets/spotlight_search.dart'
+    as import_spotlight;
+import 'package:munnin/features/navigation/widgets/top_bar_search.dart'
+    as import_top_bar;
 import 'package:window_manager/window_manager.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -19,7 +24,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
-  
+
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = const WindowOptions(
@@ -28,7 +33,7 @@ Future<void> main() async {
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.hidden, // Cacher la barre native
     );
-    
+
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
@@ -50,7 +55,8 @@ class _MunninAppState extends State<MunninApp> {
   bool _isSettingsOpen = false;
   String? _currentWikiPath; // Stocke le chemin du wiki ouvert
   List<String> _recentWikis = [];
-  final GlobalKey<FileExplorerState> _fileExplorerKey = GlobalKey<FileExplorerState>();
+  final GlobalKey<FileExplorerState> _fileExplorerKey =
+      GlobalKey<FileExplorerState>();
 
   @override
   void initState() {
@@ -69,8 +75,13 @@ class _MunninAppState extends State<MunninApp> {
   bool _handleGlobalKeys(KeyEvent event) {
     if (event is KeyDownEvent) {
       if (HardwareKeyboard.instance.isControlPressed) {
-        if (event.logicalKey == LogicalKeyboardKey.keyK) {
+        if (event.logicalKey == LogicalKeyboardKey.keyF &&
+            HardwareKeyboard.instance.isShiftPressed) {
           CommandManager.instance.execute('app.command_palette');
+          return true;
+        } else if (event.logicalKey == LogicalKeyboardKey.keyP &&
+            HardwareKeyboard.instance.isShiftPressed) {
+          import_top_bar.globalSearchFocusNode.requestFocus();
           return true;
         } else if (event.logicalKey == LogicalKeyboardKey.keyS) {
           if (HardwareKeyboard.instance.isShiftPressed) {
@@ -87,112 +98,235 @@ class _MunninAppState extends State<MunninApp> {
 
   void _registerCommands() {
     final cmdManager = CommandManager.instance;
-    
-    cmdManager.register(AppCommand(
-      id: 'app.theme_settings',
-      title: 'Changer le thème',
-      description: 'Ouvrir les paramètres d\'apparence',
-      icon: Icons.palette,
-      execute: _openThemeSettings,
-    ));
 
-    cmdManager.register(AppCommand(
-      id: 'app.command_palette',
-      title: 'Afficher la palette de commandes',
-      icon: Icons.search,
-      shortcutLabel: 'Ctrl+K',
-      execute: () {
-        globalSearchFocusNode.requestFocus();
-      },
-    ));
-    
-    cmdManager.register(AppCommand(
-      id: 'wiki.create',
-      title: 'Nouveau Wiki...',
-      description: 'Créer un nouveau répertoire de connaissances',
-      icon: Icons.create_new_folder,
-      execute: _createNewWiki,
-    ));
+    cmdManager.register(
+      AppCommand(
+        id: 'app.theme_settings',
+        title: 'Changer le thème',
+        description: 'Ouvrir les paramètres d\'apparence',
+        icon: Icons.palette,
+        execute: _openThemeSettings,
+      ),
+    );
 
-    cmdManager.register(AppCommand(
-      id: 'wiki.pull_welcome_file',
-      title: 'Mettre à jour le tutoriel',
-      description: 'Récupérer la dernière version du fichier welcome.md',
-      icon: Icons.download,
-      execute: _pullWelcomeFile,
-    ));
+    cmdManager.register(
+      AppCommand(
+        id: 'app.command_palette',
+        title: 'Recherche Globale (Spotlight)',
+        icon: Icons.search,
+        shortcutLabel: 'Ctrl+Shift+F',
+        execute: () {
+          final context = navigatorKey.currentContext;
+          if (context != null) {
+            import_spotlight.SpotlightSearchDialog.show(context);
+          }
+        },
+      ),
+    );
 
-    cmdManager.register(AppCommand(
-      id: 'wiki.open',
-      title: 'Ouvrir un Wiki...',
-      description: 'Ouvrir un répertoire existant',
-      icon: Icons.folder_open,
-      execute: _openExistingWiki,
-    ));
+    cmdManager.register(
+      AppCommand(
+        id: 'wiki.create',
+        title: 'Nouveau Wiki...',
+        description: 'Créer un nouveau répertoire de connaissances',
+        icon: Icons.create_new_folder,
+        execute: _createNewWiki,
+      ),
+    );
 
-    cmdManager.register(AppCommand(
-      id: 'file.save',
-      title: 'Sauvegarder',
-      description: 'Sauvegarde le fichier actif',
-      icon: Icons.save,
-      shortcutLabel: 'Ctrl+S',
-      execute: () {
-        EditorManager.instance.saveActiveFile();
-      },
-    ));
+    cmdManager.register(
+      AppCommand(
+        id: 'wiki.pull_welcome_file',
+        title: 'Mettre à jour le tutoriel',
+        description: 'Récupérer la dernière version du fichier welcome.md',
+        icon: Icons.download,
+        execute: _pullWelcomeFile,
+      ),
+    );
 
-    cmdManager.register(AppCommand(
-      id: 'file.save_all',
-      title: 'Sauvegarder tout',
-      description: 'Sauvegarde tous les fichiers modifiés',
-      icon: Icons.save_alt,
-      shortcutLabel: 'Ctrl+Shift+S',
-      execute: () {
-        EditorManager.instance.saveAll();
-      },
-    ));
+    cmdManager.register(
+      AppCommand(
+        id: 'wiki.open',
+        title: 'Ouvrir un Wiki...',
+        description: 'Ouvrir un répertoire existant',
+        icon: Icons.folder_open,
+        execute: _openExistingWiki,
+      ),
+    );
 
-    cmdManager.register(AppCommand(
-      id: 'editor.mode.markdown',
-      title: 'Mode Markdown',
-      description: 'Passer l\'onglet actif en mode édition Markdown',
-      icon: Icons.code,
-      execute: () {
-        final path = EditorManager.instance.activeFilePath;
-        if (path != null) EditorManager.instance.setFileMode(path, EditorMode.markdown);
-      },
-    ));
+    cmdManager.register(
+      AppCommand(
+        id: 'file.save',
+        title: 'Sauvegarder',
+        description: 'Sauvegarde le fichier actif',
+        icon: Icons.save,
+        shortcutLabel: 'Ctrl+S',
+        execute: () {
+          EditorManager.instance.saveActiveFile();
+        },
+      ),
+    );
 
-    cmdManager.register(AppCommand(
-      id: 'editor.mode.render',
-      title: 'Mode Rendu',
-      description: 'Passer l\'onglet actif en mode lecture (Rendu)',
-      icon: Icons.preview,
-      execute: () {
-        final path = EditorManager.instance.activeFilePath;
-        if (path != null) EditorManager.instance.setFileMode(path, EditorMode.render);
-      },
-    ));
+    cmdManager.register(
+      AppCommand(
+        id: 'file.save_all',
+        title: 'Sauvegarder tout',
+        description: 'Sauvegarde tous les fichiers modifiés',
+        icon: Icons.save_alt,
+        shortcutLabel: 'Ctrl+Shift+S',
+        execute: () {
+          EditorManager.instance.saveAll();
+        },
+      ),
+    );
 
-    cmdManager.register(AppCommand(
-      id: 'editor.mode.markdown_all',
-      title: 'Tout en Markdown',
-      description: 'Passer tous les onglets en mode édition',
-      icon: Icons.integration_instructions,
-      execute: () {
-        EditorManager.instance.setAllFilesMode(EditorMode.markdown);
-      },
-    ));
+    cmdManager.register(
+      AppCommand(
+        id: 'editor.mode.markdown',
+        title: 'Mode Markdown',
+        description: 'Passer l\'onglet actif en mode édition Markdown',
+        icon: Icons.code,
+        execute: () {
+          final path = EditorManager.instance.activeFilePath;
+          if (path != null)
+            EditorManager.instance.setFileMode(path, EditorMode.markdown);
+        },
+      ),
+    );
 
-    cmdManager.register(AppCommand(
-      id: 'editor.mode.render_all',
-      title: 'Tout en Rendu',
-      description: 'Passer tous les onglets en mode lecture',
-      icon: Icons.chrome_reader_mode,
-      execute: () {
-        EditorManager.instance.setAllFilesMode(EditorMode.render);
-      },
-    ));
+    cmdManager.register(
+      AppCommand(
+        id: 'editor.mode.render',
+        title: 'Mode Rendu',
+        description: 'Passer l\'onglet actif en mode lecture (Rendu)',
+        icon: Icons.preview,
+        execute: () {
+          final path = EditorManager.instance.activeFilePath;
+          if (path != null)
+            EditorManager.instance.setFileMode(path, EditorMode.render);
+        },
+      ),
+    );
+
+    cmdManager.register(
+      AppCommand(
+        id: 'editor.mode.markdown_all',
+        title: 'Tout en Markdown',
+        description: 'Passer tous les onglets en mode édition',
+        icon: Icons.integration_instructions,
+        execute: () {
+          EditorManager.instance.setAllFilesMode(EditorMode.markdown);
+        },
+      ),
+    );
+
+    cmdManager.register(
+      AppCommand(
+        id: 'editor.mode.render_all',
+        title: 'Tout en Rendu',
+        description: 'Passer tous les onglets en mode lecture',
+        icon: Icons.chrome_reader_mode,
+        execute: () {
+          EditorManager.instance.setAllFilesMode(EditorMode.render);
+        },
+      ),
+    );
+    cmdManager.register(
+      AppCommand(
+        id: 'wiki.repair',
+        title: 'Diagnostiquer & Réparer le Wiki',
+        description: 'Vérifie la base de recherche et la répare si besoin',
+        icon: Icons.health_and_safety,
+        execute: _repairWiki,
+      ),
+    );
+
+    cmdManager.register(
+      AppCommand(
+        id: 'wiki.reindex_force',
+        title: 'Forcer la Réindexation',
+        description: 'Recrée totalement la base de recherche',
+        icon: Icons.sync,
+        execute: () {
+          if (_currentWikiPath != null) {
+            _reindexWiki(_currentWikiPath!);
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _repairWiki() async {
+    final context = navigatorKey.currentContext;
+    if (context == null || _currentWikiPath == null) return;
+
+    try {
+      final health = rust_search.checkDbHealth(wikiRoot: _currentWikiPath!);
+
+      if (health.status == 'healthy') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'La base de données est saine. Aucune réparation requise.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Base ${health.status} (${health.message}). Réparation en cours...',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        await _reindexWiki(_currentWikiPath!);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors du diagnostic: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _reindexWiki(String path) async {
+    final context = navigatorKey.currentContext;
+
+    if (context != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Réindexation totale en cours... (via Rust)'),
+        ),
+      );
+    }
+
+    try {
+      await rust_search.rebuildIndex(wikiRoot: path);
+
+      if (context != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Réindexation terminée avec succès !'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la réindexation: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _createNewWiki() async {
@@ -233,10 +367,12 @@ class _MunninAppState extends State<MunninApp> {
 
     try {
       final newWikiPath = initWiki(parentPath: parentPath, name: name.trim());
-      
+
       // --- Génération de la documentation / tutoriel par défaut ---
       final docFile = File('$newWikiPath${Platform.pathSeparator}welcome.md');
-      final templateContent = await rootBundle.loadString('assets/templates/welcome.md');
+      final templateContent = await rootBundle.loadString(
+        'assets/templates/welcome.md',
+      );
       await docFile.writeAsString(templateContent);
       // -----------------------------------------------------------
 
@@ -255,19 +391,23 @@ class _MunninAppState extends State<MunninApp> {
 
   Future<void> _pullWelcomeFile() async {
     if (_currentWikiPath == null) return;
-    
+
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
-    final docFile = File('$_currentWikiPath${Platform.pathSeparator}welcome.md');
-    
+    final docFile = File(
+      '$_currentWikiPath${Platform.pathSeparator}welcome.md',
+    );
+
     if (await docFile.exists()) {
       if (!context.mounted) return;
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Fichier existant'),
-          content: const Text('Un fichier welcome.md existe déjà à la racine de ce wiki. Voulez-vous vraiment l\'écraser avec la dernière version du tutoriel ?'),
+          content: const Text(
+            'Un fichier welcome.md existe déjà à la racine de ce wiki. Voulez-vous vraiment l\'écraser avec la dernière version du tutoriel ?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -284,27 +424,31 @@ class _MunninAppState extends State<MunninApp> {
           ],
         ),
       );
-      
+
       if (confirm != true) return;
     }
-    
+
     try {
-      final templateContent = await rootBundle.loadString('assets/templates/welcome.md');
+      final templateContent = await rootBundle.loadString(
+        'assets/templates/welcome.md',
+      );
       await docFile.writeAsString(templateContent);
-      
+
       // Met à jour la version en mémoire si le fichier est déjà ouvert
       EditorManager.instance.updateFileContent(docFile.path, templateContent);
       EditorManager.instance.markAsClean(docFile.path);
-      
+
       // Rafraîchit l'explorateur pour qu'il affiche le fichier nouvellement créé
       _fileExplorerKey.currentState?.loadTree();
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fichier welcome.md récupéré avec succès !')),
+          const SnackBar(
+            content: Text('Fichier welcome.md récupéré avec succès !'),
+          ),
         );
       }
-      
+
       EditorManager.instance.openFile(docFile.path);
     } catch (e) {
       if (context.mounted) {
@@ -338,8 +482,8 @@ class _MunninAppState extends State<MunninApp> {
         return Directory(path).existsSync();
       }).toList();
     });
-    
-    // Note: Pour nettoyer le fichier de config JSON définitivement, il faudra 
+
+    // Note: Pour nettoyer le fichier de config JSON définitivement, il faudra
     // exposer une méthode `remove_recent_wiki` ou `save_settings` côté Rust (RustLib).
   }
 
@@ -349,7 +493,7 @@ class _MunninAppState extends State<MunninApp> {
     });
     saveTheme(index: index);
   }
-  
+
   void _openThemeSettings() {
     setState(() {
       _isSettingsOpen = true;
@@ -367,6 +511,16 @@ class _MunninAppState extends State<MunninApp> {
       _currentWikiPath = path;
     });
     addRecentWiki(wikiPath: path);
+
+    // Initialise la base de données de recherche pour ce wiki
+    try {
+      rust_search.initSearchDb(wikiRoot: path);
+    } catch (e) {
+      if (kDebugMode) {
+        print("Erreur lors de l'initialisation de la DB de recherche : $e");
+      }
+    }
+
     _loadInitialSettings(); // Rafraîchit l'historique
   }
 
@@ -386,56 +540,57 @@ class _MunninAppState extends State<MunninApp> {
       theme: themeData,
       home: LayoutBuilder(
         builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < ResponsiveLayout.mobileBreakpoint;
-          
+          final isMobile =
+              constraints.maxWidth < ResponsiveLayout.mobileBreakpoint;
+
           return Scaffold(
-                appBar: const CustomTopBar(),
-                // Si mobile, on affiche la BottomBar, sinon rien (car Desktop utilise la LeftSidebar)
-                bottomNavigationBar: isMobile 
-                  ? MobileBottomNavigation(
-                      onThemeToggle: _openThemeSettings,
-                      onOpenEditor: _openEditor,
-                    ) 
-                  : null,
-                // Le body utilise un Stack pour permettre aux fenêtres de flotter au-dessus de l'éditeur
-                body: Stack(
-                  children: [
-                    // Couche 0 : Le Layout de fond (Editeur ou Accueil)
-                    ResponsiveLayout(
-                      onThemeToggle: _openThemeSettings,
-                      onOpenEditor: _openEditor,
-                      rightSidebar: _currentWikiPath != null
-                        ? FileExplorer(
-                            key: _fileExplorerKey,
-                            rootPath: _currentWikiPath!,
-                            onFileSelected: (path) {
-                              EditorManager.instance.openFile(path);
-                            },
-                          )
-                        : null,
-                      child: _currentWikiPath == null 
-                        ? WelcomeScreen(
-                            onWikiOpened: _openWiki,
-                            recentWikis: _recentWikis,
-                          )
-                        : const MarkdownEditor(),
-                    ),
-                    
-                    // Couche 1 : Les Fenêtres Flottantes (In-App Windows)
-                    if (_isSettingsOpen)
-                      DraggableWindow(
-                        title: 'Paramètres',
-                        onClose: _closeThemeSettings,
-                        child: ThemeSelectionScreen(
-                          initialIndex: _themeIndex,
-                          onThemeSelected: _setTheme,
-                        ),
-                      ),
-                  ],
+            appBar: const CustomTopBar(),
+            // Si mobile, on affiche la BottomBar, sinon rien (car Desktop utilise la LeftSidebar)
+            bottomNavigationBar: isMobile
+                ? MobileBottomNavigation(
+                    onThemeToggle: _openThemeSettings,
+                    onOpenEditor: _openEditor,
+                  )
+                : null,
+            // Le body utilise un Stack pour permettre aux fenêtres de flotter au-dessus de l'éditeur
+            body: Stack(
+              children: [
+                // Couche 0 : Le Layout de fond (Editeur ou Accueil)
+                ResponsiveLayout(
+                  onThemeToggle: _openThemeSettings,
+                  onOpenEditor: _openEditor,
+                  rightSidebar: _currentWikiPath != null
+                      ? FileExplorer(
+                          key: _fileExplorerKey,
+                          rootPath: _currentWikiPath!,
+                          onFileSelected: (path) {
+                            EditorManager.instance.openFile(path);
+                          },
+                        )
+                      : null,
+                  child: _currentWikiPath == null
+                      ? WelcomeScreen(
+                          onWikiOpened: _openWiki,
+                          recentWikis: _recentWikis,
+                        )
+                      : const MarkdownEditor(),
                 ),
-              );
-            }
-          ),
+
+                // Couche 1 : Les Fenêtres Flottantes (In-App Windows)
+                if (_isSettingsOpen)
+                  DraggableWindow(
+                    title: 'Paramètres',
+                    onClose: _closeThemeSettings,
+                    child: ThemeSelectionScreen(
+                      initialIndex: _themeIndex,
+                      onThemeSelected: _setTheme,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

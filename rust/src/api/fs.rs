@@ -1,8 +1,7 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-use flutter_rust_bridge::frb;
+use crate::api::models::{Page, PageMetadata, TreeNode, WikiAnchor};
 use chrono::Utc;
-use crate::api::models::{WikiAnchor, PageMetadata, Page, TreeNode};
+use std::fs;
+use std::path::Path;
 
 pub fn init_wiki(root_path: String, title: String) -> anyhow::Result<()> {
     let root = Path::new(&root_path);
@@ -34,15 +33,23 @@ pub fn scan_directory(root_path: String) -> anyhow::Result<TreeNode> {
 
 fn scan_dir_recursive(path: &Path, root: &Path) -> anyhow::Result<TreeNode> {
     let mut children = Vec::new();
-    let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-    let rel_path = path.strip_prefix(root)?.to_string_lossy().to_string().replace("\\", "/");
+    let name = path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let rel_path = path
+        .strip_prefix(root)?
+        .to_string_lossy()
+        .to_string()
+        .replace("\\", "/");
 
     if path.is_dir() {
         for entry in fs::read_dir(path)? {
             let entry = entry?;
             let entry_path = entry.path();
             let file_name = entry.file_name().to_string_lossy().to_string();
-            
+
             // Ignore hidden files like .git, .crow, etc.
             if file_name.starts_with('.') {
                 continue;
@@ -53,10 +60,14 @@ fn scan_dir_recursive(path: &Path, root: &Path) -> anyhow::Result<TreeNode> {
                     children.push(node);
                 }
             } else if entry_path.extension().and_then(|s| s.to_str()) == Some("md") {
-                let mut is_dir = false;
+                let is_dir = false;
                 children.push(TreeNode {
                     name: file_name.replace(".md", ""),
-                    path: entry_path.strip_prefix(root)?.to_string_lossy().to_string().replace("\\", "/"),
+                    path: entry_path
+                        .strip_prefix(root)?
+                        .to_string_lossy()
+                        .to_string()
+                        .replace("\\", "/"),
                     is_directory: is_dir,
                     children: Vec::new(),
                 });
@@ -66,11 +77,17 @@ fn scan_dir_recursive(path: &Path, root: &Path) -> anyhow::Result<TreeNode> {
 
     // Sort: directories first, then alphabetically
     children.sort_by(|a, b| {
-        b.is_directory.cmp(&a.is_directory).then(a.name.cmp(&b.name))
+        b.is_directory
+            .cmp(&a.is_directory)
+            .then(a.name.cmp(&b.name))
     });
 
     Ok(TreeNode {
-        name: if rel_path.is_empty() { "Root".to_string() } else { name },
+        name: if rel_path.is_empty() {
+            "Root".to_string()
+        } else {
+            name
+        },
         path: rel_path,
         is_directory: true,
         children,
@@ -83,7 +100,11 @@ pub fn read_page(root_path: String, rel_path: String) -> anyhow::Result<Page> {
 
     // Parse Frontmatter
     let mut metadata = PageMetadata {
-        title: Path::new(&rel_path).file_stem().unwrap_or_default().to_string_lossy().to_string(),
+        title: Path::new(&rel_path)
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
         tags: vec![],
         created_at: None,
         updated_at: None,
@@ -97,7 +118,7 @@ pub fn read_page(root_path: String, rel_path: String) -> anyhow::Result<Page> {
                 metadata = parsed_meta;
             }
             // Add + 4 for "\n---" and + 1 for newline after that
-            let end_idx = end + 8; 
+            let end_idx = end + 8;
             if end_idx < content.len() {
                 markdown_content = content[end_idx..].trim_start().to_string();
             } else {

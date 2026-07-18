@@ -13,6 +13,7 @@ Permettre de retrouver ses connaissances instantanément.
 - [ ] Connecter la "Command Palette" (`Ctrl+K`) à un véritable moteur de recherche textuelle.
 - [ ] Créer une fonction Rust optimisée pour lire et chercher (Regex) à haute vitesse dans tous les fichiers `.md` du dossier du wiki.
 - [ ] Afficher les résultats avec mise en surbrillance du texte pertinent directement depuis l'interface Flutter.
+- [ ] (Long terme) Implémenter un modèle d'Embeddings local en Rust pour la "Smart Research" (recherche vectorielle et sémantique de type RAG).
 
 ## 🔗 3. Système de Liens Wiki & Backlinks
 Transformer les notes isolées en un réseau de connaissances connecté.

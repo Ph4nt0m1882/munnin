@@ -25,13 +25,15 @@ class ThemePreviewCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? previewTheme.colorScheme.primary : Colors.transparent,
+            color: isSelected
+                ? previewTheme.colorScheme.primary
+                : Colors.transparent,
             width: 3,
           ),
           boxShadow: [
             if (isSelected)
               BoxShadow(
-                color: previewTheme.colorScheme.primary.withOpacity(0.3),
+                color: previewTheme.colorScheme.primary.withValues(alpha: 0.3),
                 blurRadius: 8,
                 spreadRadius: 2,
               ),
@@ -41,7 +43,9 @@ class ThemePreviewCard extends StatelessWidget {
         child: Theme(
           data: previewTheme,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(9), // Légèrement inférieur pour s'adapter à la bordure
+            borderRadius: BorderRadius.circular(
+              9,
+            ), // Légèrement inférieur pour s'adapter à la bordure
             child: Container(
               color: previewTheme.scaffoldBackgroundColor,
               child: Column(
@@ -60,7 +64,7 @@ class ThemePreviewCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
+
                   // Faux Contenu
                   Expanded(
                     child: Padding(
@@ -81,7 +85,8 @@ class ThemePreviewCard extends StatelessWidget {
                             width: 140,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: previewTheme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                              color: previewTheme.textTheme.bodyMedium?.color
+                                  ?.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -90,7 +95,10 @@ class ThemePreviewCard extends StatelessWidget {
                           Align(
                             alignment: Alignment.bottomRight,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: previewTheme.colorScheme.primary,
                                 borderRadius: BorderRadius.circular(16),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:munnin/core/commands/commands.dart';
 
 class LeftSidebar extends StatelessWidget {
   final VoidCallback onThemeToggle;
@@ -13,15 +14,17 @@ class LeftSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       width: 64, // Largeur fixe pour une sidebar d'icônes
-      color: theme.colorScheme.surface, // Couleur de fond distincte de la zone centrale
+      color: theme
+          .colorScheme
+          .surface, // Couleur de fond distincte de la zone centrale
       child: Column(
         children: [
           // Espace en haut
           const SizedBox(height: 16),
-          
+
           // Bouton Accueil ou Fichiers
           IconButton(
             icon: const Icon(Icons.folder_open),
@@ -29,19 +32,21 @@ class LeftSidebar extends StatelessWidget {
             tooltip: 'Fichiers',
             onPressed: onOpenEditor,
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           IconButton(
             icon: const Icon(Icons.search),
             color: theme.colorScheme.onSurface,
             tooltip: 'Recherche',
-            onPressed: () {},
+            onPressed: () {
+              CommandManager.instance.execute('app.command_palette');
+            },
           ),
-          
+
           // Pousse les éléments suivants vers le bas
           const Spacer(),
-          
+
           // Bouton pour basculer les thèmes (temporaire pour test)
           IconButton(
             icon: const Icon(Icons.color_lens_outlined),
@@ -49,9 +54,9 @@ class LeftSidebar extends StatelessWidget {
             tooltip: 'Thème',
             onPressed: onThemeToggle,
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Bouton Paramètres
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -59,7 +64,7 @@ class LeftSidebar extends StatelessWidget {
             tooltip: 'Paramètres',
             onPressed: () {},
           ),
-          
+
           const SizedBox(height: 24),
         ],
       ),

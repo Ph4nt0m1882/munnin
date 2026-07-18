@@ -1,11 +1,16 @@
+// ignore_for_file: avoid_print
 import 'dart:io';
 
 void main() {
-  final lucideFile = File(r'C:\Users\barre\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_lucide-1.11.0\lib\src\flutter_lucide.dart');
-  final simpleFile = File(r'C:\Users\barre\AppData\Local\Pub\Cache\hosted\pub.dev\simple_icons-16.23.0\lib\src\icon_data.g.dart');
+  final lucideFile = File(
+    r'C:\Users\barre\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_lucide-1.11.0\lib\src\flutter_lucide.dart',
+  );
+  final simpleFile = File(
+    r'C:\Users\barre\AppData\Local\Pub\Cache\hosted\pub.dev\simple_icons-16.23.0\lib\src\icon_data.g.dart',
+  );
 
   final output = StringBuffer();
-  output.writeln('import \'package:flutter/widgets.dart\';');
+  output.writeln('import \'package:flutter/material.dart\';');
   output.writeln('import \'package:flutter_lucide/flutter_lucide.dart\';');
   output.writeln('import \'package:simple_icons/simple_icons.dart\';\n');
 
@@ -34,6 +39,26 @@ void main() {
       final name = match.group(1);
       if (name != null && !name.startsWith('_')) {
         output.writeln('  \'simple-$name\': SimpleIcons.$name,');
+      }
+    }
+  }
+  output.writeln('};');
+
+  // Material Icons
+  final materialFile = File(
+    r'C:\src\flutter\packages\flutter\lib\src\material\icons.dart',
+  );
+  output.writeln('final Map<String, IconData> materialIconsMap = {');
+  if (materialFile.existsSync()) {
+    final content = materialFile.readAsStringSync();
+    // Material icons usually look like: static const IconData ac_unit = IconData(0xeb3b, fontFamily: 'MaterialIcons');
+    // or static const IconData ac_unit_outlined = IconData(0xeb3b, fontFamily: 'MaterialIcons');
+    final regex = RegExp(r'static const IconData ([a-zA-Z0-9_]+) = IconData');
+    final matches = regex.allMatches(content);
+    for (final match in matches) {
+      final name = match.group(1);
+      if (name != null && !name.startsWith('_')) {
+        output.writeln('  \'material-$name\': Icons.$name,');
       }
     }
   }

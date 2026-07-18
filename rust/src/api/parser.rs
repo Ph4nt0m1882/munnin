@@ -1,6 +1,5 @@
-use flutter_rust_bridge::frb;
+use crate::api::models::{TextAttributes, TextChunk};
 use pulldown_cmark::{Event, Parser, Tag, TagEnd};
-use crate::api::models::{TextChunk, TextAttributes};
 
 pub fn markdown_to_delta(markdown: String) -> Vec<TextChunk> {
     let parser = Parser::new(&markdown);
@@ -72,12 +71,12 @@ pub fn delta_to_markdown(chunks: Vec<TextChunk>) -> String {
 
     for chunk in chunks {
         let attrs = &chunk.attributes;
-        let mut text = chunk.text.clone();
+        let text = chunk.text.clone();
 
         // Handle inline formatting changes (simpler version)
-        // In a real robust implementation, we would need to carefully manage nesting, 
+        // In a real robust implementation, we would need to carefully manage nesting,
         // but for now we apply tags locally if they differ or just wrap the text.
-        
+
         let mut prefix = String::new();
         let mut suffix = String::new();
 
@@ -91,16 +90,16 @@ pub fn delta_to_markdown(chunks: Vec<TextChunk>) -> String {
             suffix.push_str("**");
         }
         if attrs.italic {
-            prefix.push_str("*");
-            suffix.push_str("*");
+            prefix.push('*');
+            suffix.push('*');
         }
         if attrs.strikethrough {
             prefix.push_str("~~");
             suffix.push_str("~~");
         }
         if attrs.code {
-            prefix.push_str("`");
-            suffix.push_str("`");
+            prefix.push('`');
+            suffix.push('`');
         }
 
         if let Some(link) = &attrs.link {

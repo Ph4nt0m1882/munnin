@@ -8,11 +8,7 @@ class FileExplorer extends StatefulWidget {
   final String rootPath;
   final ValueChanged<String>? onFileSelected;
 
-  const FileExplorer({
-    super.key,
-    required this.rootPath,
-    this.onFileSelected,
-  });
+  const FileExplorer({super.key, required this.rootPath, this.onFileSelected});
 
   @override
   State<FileExplorer> createState() => FileExplorerState();
@@ -21,10 +17,10 @@ class FileExplorer extends StatefulWidget {
 class FileExplorerState extends State<FileExplorer> {
   // Map stockant l'état d'expansion des dossiers
   final Map<String, bool> _expandedState = {};
-  
+
   // Chemin du nœud (dossier ou fichier) actuellement sélectionné
   String? _selectedNodePath;
-  
+
   // Liste "à plat" des entités visibles (pour ListView performant)
   List<ExplorerNode> _visibleNodes = [];
 
@@ -58,10 +54,10 @@ class FileExplorerState extends State<FileExplorer> {
 
   Future<List<ExplorerNode>> _buildNodes(Directory dir, int depth) async {
     List<ExplorerNode> nodes = [];
-    
+
     try {
       final entities = await dir.list().toList();
-      
+
       // Trier : dossiers d'abord, puis fichiers, par ordre alphabétique
       entities.sort((a, b) {
         final aIsDir = a is Directory;
@@ -73,19 +69,21 @@ class FileExplorerState extends State<FileExplorer> {
 
       for (var entity in entities) {
         final name = entity.path.split(RegExp(r'[/\\]')).last;
-        
+
         // Ignorer les dossiers/fichiers cachés (ex: .crow, .git)
         if (name.startsWith('.')) continue;
 
         final isDir = entity is Directory;
         final isExpanded = _expandedState[entity.path] ?? false;
 
-        nodes.add(ExplorerNode(
-          entity: entity,
-          depth: depth,
-          isExpanded: isExpanded,
-          isDirectory: isDir,
-        ));
+        nodes.add(
+          ExplorerNode(
+            entity: entity,
+            depth: depth,
+            isExpanded: isExpanded,
+            isDirectory: isDir,
+          ),
+        );
 
         if (isDir && isExpanded) {
           final childNodes = await _buildNodes(entity, depth + 1);
@@ -103,7 +101,7 @@ class FileExplorerState extends State<FileExplorer> {
     setState(() {
       final isNowExpanded = !node.isExpanded;
       _expandedState[node.entity.path] = isNowExpanded;
-      
+
       if (isNowExpanded) {
         _selectedNodePath = node.entity.path;
       } else {
@@ -161,8 +159,9 @@ class FileExplorerState extends State<FileExplorer> {
     // Déterminer le parent
     String parentPath = widget.rootPath;
     if (_selectedNodePath != null) {
-      final selectedEntity = FileSystemEntity.isDirectorySync(_selectedNodePath!) 
-          ? Directory(_selectedNodePath!) 
+      final selectedEntity =
+          FileSystemEntity.isDirectorySync(_selectedNodePath!)
+          ? Directory(_selectedNodePath!)
           : File(_selectedNodePath!).parent;
       parentPath = selectedEntity.path;
     }
@@ -198,7 +197,12 @@ class FileExplorerState extends State<FileExplorer> {
 
     showMenu(
       context: context,
-      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
       items: [
         PopupMenuItem(
           value: 'rename',
@@ -214,9 +218,16 @@ class FileExplorerState extends State<FileExplorer> {
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete, size: 18, color: Theme.of(context).colorScheme.error),
+              Icon(
+                Icons.delete,
+                size: 18,
+                color: Theme.of(context).colorScheme.error,
+              ),
               const SizedBox(width: 8),
-              Text('Supprimer', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text(
+                'Supprimer',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ],
           ),
         ),
@@ -233,7 +244,9 @@ class FileExplorerState extends State<FileExplorer> {
   Future<void> _renameNode(ExplorerNode node) async {
     final oldName = node.entity.path.split(RegExp(r'[/\\]')).last;
     final isMd = !node.isDirectory && oldName.toLowerCase().endsWith('.md');
-    final displayName = isMd ? oldName.substring(0, oldName.length - 3) : oldName;
+    final displayName = isMd
+        ? oldName.substring(0, oldName.length - 3)
+        : oldName;
 
     final nameController = TextEditingController(text: displayName);
     final newName = await showDialog<String>(
@@ -246,13 +259,22 @@ class FileExplorerState extends State<FileExplorer> {
           onSubmitted: (val) => Navigator.pop(context, val),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, nameController.text), child: const Text('Renommer')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, nameController.text),
+            child: const Text('Renommer'),
+          ),
         ],
       ),
     );
 
-    if (newName == null || newName.trim().isEmpty || newName.trim() == displayName) return;
+    if (newName == null ||
+        newName.trim().isEmpty ||
+        newName.trim() == displayName)
+      return;
 
     String finalName = newName.trim();
     if (!node.isDirectory && !finalName.toLowerCase().endsWith('.md')) {
@@ -266,13 +288,16 @@ class FileExplorerState extends State<FileExplorer> {
       await node.entity.rename(newPath);
       // Mise à jour de l'éditeur si ouvert
       EditorManager.instance.renameOpenedFile(node.entity.path, newPath);
-      
+
       if (_selectedNodePath == node.entity.path) {
         _selectedNodePath = newPath;
       }
       loadTree();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 
@@ -281,13 +306,21 @@ class FileExplorerState extends State<FileExplorer> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Supprimer'),
-        content: Text('Voulez-vous vraiment supprimer "${node.entity.path.split(RegExp(r'[/\\]')).last}" ?'),
+        content: Text(
+          'Voulez-vous vraiment supprimer "${node.entity.path.split(RegExp(r'[/\\]')).last}" ?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error, foregroundColor: Theme.of(context).colorScheme.onError),
-            onPressed: () => Navigator.pop(context, true), 
-            child: const Text('Supprimer')
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Supprimer'),
           ),
         ],
       ),
@@ -305,12 +338,20 @@ class FileExplorerState extends State<FileExplorer> {
       if (_selectedNodePath == node.entity.path) _selectedNodePath = null;
       loadTree();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 
-  Future<void> _handleDrop(String sourcePath, String targetDirectoryPath) async {
-    final sourceEntity = FileSystemEntity.isDirectorySync(sourcePath) ? Directory(sourcePath) : File(sourcePath);
+  Future<void> _handleDrop(
+    String sourcePath,
+    String targetDirectoryPath,
+  ) async {
+    final sourceEntity = FileSystemEntity.isDirectorySync(sourcePath)
+        ? Directory(sourcePath)
+        : File(sourcePath);
     final sourceName = sourcePath.split(RegExp(r'[/\\]')).last;
     final newPath = '$targetDirectoryPath${Platform.pathSeparator}$sourceName';
 
@@ -321,7 +362,10 @@ class FileExplorerState extends State<FileExplorer> {
       EditorManager.instance.renameOpenedFile(sourcePath, newPath);
       loadTree();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur de déplacement: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur de déplacement: $e')));
     }
   }
 
@@ -357,47 +401,68 @@ class FileExplorerState extends State<FileExplorer> {
                   ),
                 ),
                 // Actions
-                _buildHeaderIcon(Icons.note_add_outlined, 'Nouveau fichier', () => _createNewEntity(false), theme),
-                _buildHeaderIcon(Icons.create_new_folder_outlined, 'Nouveau dossier', () => _createNewEntity(true), theme),
-                _buildHeaderIcon(Icons.unfold_less, 'Réduire tout', _collapseAll, theme),
+                _buildHeaderIcon(
+                  Icons.note_add_outlined,
+                  'Nouveau fichier',
+                  () => _createNewEntity(false),
+                  theme,
+                ),
+                _buildHeaderIcon(
+                  Icons.create_new_folder_outlined,
+                  'Nouveau dossier',
+                  () => _createNewEntity(true),
+                  theme,
+                ),
+                _buildHeaderIcon(
+                  Icons.unfold_less,
+                  'Réduire tout',
+                  _collapseAll,
+                  theme,
+                ),
               ],
             ),
           ),
-          
+
           // Arbre de fichiers
           Expanded(
             child: _visibleNodes.isEmpty
-              ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
-              : ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: _visibleNodes.length,
-                  itemBuilder: (context, index) {
-                    final node = _visibleNodes[index];
-                    return ExplorerItem(
-                      node: node,
-                      isSelected: node.entity.path == _selectedNodePath,
-                      onTap: () {
-                        if (node.isDirectory) {
-                          _toggleDirectory(node);
-                        } else {
-                          setState(() {
-                            _selectedNodePath = node.entity.path;
-                          });
-                          widget.onFileSelected?.call(node.entity.path);
-                        }
-                      },
-                      onSecondaryTap: (pos) => _showContextMenu(pos, node),
-                      onDroppedOn: (source) => _handleDrop(source, node.entity.path),
-                    );
-                  },
-                ),
+                ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                : ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: _visibleNodes.length,
+                    itemBuilder: (context, index) {
+                      final node = _visibleNodes[index];
+                      return ExplorerItem(
+                        node: node,
+                        isSelected: node.entity.path == _selectedNodePath,
+                        onTap: () {
+                          if (node.isDirectory) {
+                            _toggleDirectory(node);
+                          } else {
+                            setState(() {
+                              _selectedNodePath = node.entity.path;
+                            });
+                            widget.onFileSelected?.call(node.entity.path);
+                          }
+                        },
+                        onSecondaryTap: (pos) => _showContextMenu(pos, node),
+                        onDroppedOn: (source) =>
+                            _handleDrop(source, node.entity.path),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderIcon(IconData icon, String tooltip, VoidCallback onPressed, ThemeData theme) {
+  Widget _buildHeaderIcon(
+    IconData icon,
+    String tooltip,
+    VoidCallback onPressed,
+    ThemeData theme,
+  ) {
     return Tooltip(
       message: tooltip,
       waitDuration: const Duration(milliseconds: 500),

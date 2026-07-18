@@ -55,7 +55,7 @@ class _TopBarSearchState extends State<TopBarSearch> {
       }).toList();
     }
     _selectedIndex = 0;
-    
+
     // Si l'overlay est déjà affiché, on demande à le redessiner
     _overlayEntry?.markNeedsBuild();
   }
@@ -73,7 +73,9 @@ class _TopBarSearchState extends State<TopBarSearch> {
       _selectedIndex = (_selectedIndex + 1) % _filteredCommands.length;
       _overlayEntry?.markNeedsBuild();
     } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      _selectedIndex = (_selectedIndex - 1 + _filteredCommands.length) % _filteredCommands.length;
+      _selectedIndex =
+          (_selectedIndex - 1 + _filteredCommands.length) %
+          _filteredCommands.length;
       _overlayEntry?.markNeedsBuild();
     } else if (event.logicalKey == LogicalKeyboardKey.enter) {
       _executeCommand(_filteredCommands[_selectedIndex]);
@@ -85,7 +87,7 @@ class _TopBarSearchState extends State<TopBarSearch> {
   void _showOverlay() {
     _removeOverlay();
     final theme = Theme.of(context);
-    
+
     _overlayEntry = OverlayEntry(
       builder: (context) {
         return Stack(
@@ -110,84 +112,118 @@ class _TopBarSearchState extends State<TopBarSearch> {
                   decoration: BoxDecoration(
                     color: theme.scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5), width: 1),
+                    border: Border.all(
+                      color: theme.dividerColor.withValues(alpha: 0.5),
+                      width: 1,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 16,
                         offset: const Offset(0, 8),
-                      )
+                      ),
                     ],
                   ),
                   child: _filteredCommands.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          'Aucune commande trouvée',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        itemCount: _filteredCommands.length,
-                        itemBuilder: (context, index) {
-                          final cmd = _filteredCommands[index];
-                          final isSelected = index == _selectedIndex;
+                      ? Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            'Aucune commande trouvée',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: _filteredCommands.length,
+                          itemBuilder: (context, index) {
+                            final cmd = _filteredCommands[index];
+                            final isSelected = index == _selectedIndex;
 
-                          return Listener(
-                            onPointerDown: (_) => _executeCommand(cmd),
-                            child: Container(
-                              color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              child: Row(
-                                children: [
-                                  Icon(cmd.icon ?? Icons.terminal, size: 16,
-                                      color: isSelected ? theme.colorScheme.primary : theme.iconTheme.color),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          cmd.title,
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                          ),
-                                        ),
-                                        if (cmd.description != null)
+                            return Listener(
+                              onPointerDown: (_) => _executeCommand(cmd),
+                              child: Container(
+                                color: isSelected
+                                    ? theme.colorScheme.primary.withValues(
+                                        alpha: 0.1,
+                                      )
+                                    : Colors.transparent,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      cmd.icon ?? Icons.terminal,
+                                      size: 16,
+                                      color: isSelected
+                                          ? theme.colorScheme.primary
+                                          : theme.iconTheme.color,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
                                           Text(
-                                            cmd.description!,
-                                            style: theme.textTheme.bodySmall?.copyWith(
-                                              fontSize: 11,
-                                              color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                                            ),
+                                            cmd.title,
+                                            style: theme.textTheme.bodyMedium
+                                                ?.copyWith(
+                                                  fontWeight: isSelected
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                ),
                                           ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (cmd.shortcutLabel != null)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: theme.dividerColor.withValues(alpha: 0.5),
-                                        borderRadius: BorderRadius.circular(4),
+                                          if (cmd.description != null)
+                                            Text(
+                                              cmd.description!,
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    fontSize: 11,
+                                                    color: theme
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.color
+                                                        ?.withValues(
+                                                          alpha: 0.7,
+                                                        ),
+                                                  ),
+                                            ),
+                                        ],
                                       ),
-                                      child: Text(
-                                        cmd.shortcutLabel!,
-                                        style: theme.textTheme.labelSmall?.copyWith(
-                                          fontSize: 10,
-                                          fontFamily: 'monospace',
+                                    ),
+                                    if (cmd.shortcutLabel != null)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: theme.dividerColor.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          cmd.shortcutLabel!,
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                                fontSize: 10,
+                                                fontFamily: 'monospace',
+                                              ),
                                         ),
                                       ),
-                                    ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                            );
+                          },
+                        ),
                 ),
               ),
             ),
@@ -214,14 +250,14 @@ class _TopBarSearchState extends State<TopBarSearch> {
         width: 450,
         height: 28,
         decoration: BoxDecoration(
-          color: globalSearchFocusNode.hasFocus 
-            ? theme.colorScheme.surface
-            : theme.colorScheme.onSurface.withValues(alpha: 0.05),
+          color: globalSearchFocusNode.hasFocus
+              ? theme.colorScheme.surface
+              : theme.colorScheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: globalSearchFocusNode.hasFocus
-              ? theme.colorScheme.primary
-              : theme.dividerColor.withValues(alpha: 0.2),
+                ? theme.colorScheme.primary
+                : theme.dividerColor.withValues(alpha: 0.2),
           ),
         ),
         child: KeyboardListener(
@@ -231,17 +267,27 @@ class _TopBarSearchState extends State<TopBarSearch> {
             controller: _controller,
             focusNode: globalSearchFocusNode,
             onChanged: _filterCommands,
-            textAlignVertical: TextAlignVertical.center, // Centrage vertical natif
+            textAlignVertical:
+                TextAlignVertical.center, // Centrage vertical natif
             style: const TextStyle(fontSize: 13),
             decoration: InputDecoration(
               hintText: 'Rechercher une commande...',
               hintStyle: TextStyle(
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                color: theme.textTheme.bodyMedium?.color?.withValues(
+                  alpha: 0.6,
+                ),
                 fontSize: 13,
                 height: 1.0, // Évite les débordements de hauteur
               ),
-              prefixIcon: Icon(Icons.search, size: 16, color: theme.iconTheme.color?.withValues(alpha: 0.6)),
-              prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 28), // Empêche l'icône de grossir la boîte
+              prefixIcon: Icon(
+                Icons.search,
+                size: 16,
+                color: theme.iconTheme.color?.withValues(alpha: 0.6),
+              ),
+              prefixIconConstraints: const BoxConstraints(
+                minWidth: 36,
+                minHeight: 28,
+              ), // Empêche l'icône de grossir la boîte
               border: InputBorder.none,
               contentPadding: EdgeInsets.zero, // On enlève le padding forcé
               isDense: true,

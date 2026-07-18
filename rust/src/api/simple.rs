@@ -19,7 +19,10 @@ pub fn init_wiki(parent_path: String, name: String) -> Result<String, String> {
 
     // Vérifie si le dossier du wiki existe déjà
     if wiki_dir.exists() {
-        return Err(format!("Le dossier '{}' existe déjà dans cet emplacement.", name));
+        return Err(format!(
+            "Le dossier '{}' existe déjà dans cet emplacement.",
+            name
+        ));
     }
 
     // Crée le dossier du wiki et tous les parents nécessaires
@@ -29,11 +32,14 @@ pub fn init_wiki(parent_path: String, name: String) -> Result<String, String> {
 
     // Crée le fichier caché .crow à l'intérieur
     if let Err(e) = std::fs::File::create(&crow_file) {
-        return Err(format!("Impossible de créer le fichier d'ancrage .crow: {}", e));
+        return Err(format!(
+            "Impossible de créer le fichier d'ancrage .crow: {}",
+            e
+        ));
     }
 
     // On pourrait ajouter des fichiers initiaux ici (ex: un index.md ou settings.json)
-    
+
     // Retourne le chemin absolu du wiki fraîchement créé
     Ok(wiki_dir.to_string_lossy().into_owned())
 }

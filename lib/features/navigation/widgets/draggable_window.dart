@@ -27,7 +27,7 @@ class _DraggableWindowState extends State<DraggableWindow> {
   late double _width;
   late double _height;
   bool _isMaximized = false;
-  
+
   // Sauvegarde des dimensions avant de maximiser
   late double _prevTop;
   late double _prevLeft;
@@ -65,7 +65,7 @@ class _DraggableWindowState extends State<DraggableWindow> {
         _prevLeft = _left;
         _prevWidth = _width;
         _prevHeight = _height;
-        
+
         // Maximiser (on prend toute la taille du Stack parent)
         final size = MediaQuery.of(context).size;
         _top = 0;
@@ -80,7 +80,7 @@ class _DraggableWindowState extends State<DraggableWindow> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Positioned(
       top: _top,
       left: _left,
@@ -93,32 +93,42 @@ class _DraggableWindowState extends State<DraggableWindow> {
           decoration: BoxDecoration(
             color: theme.scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(_isMaximized ? 0 : 8),
-            border: _isMaximized ? null : Border.all(color: theme.dividerColor, width: 1),
-            boxShadow: _isMaximized ? null : [
-              BoxShadow(
-                color: Colors.black.withAlpha(50),
-                blurRadius: 15,
-                spreadRadius: 2,
-              )
-            ],
+            border: _isMaximized
+                ? null
+                : Border.all(color: theme.dividerColor, width: 1),
+            boxShadow: _isMaximized
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(50),
+                      blurRadius: 15,
+                      spreadRadius: 2,
+                    ),
+                  ],
           ),
           child: Column(
             children: [
               // Barre de titre avec Drag
               GestureDetector(
-                onPanUpdate: _isMaximized ? null : (details) {
-                  setState(() {
-                    _top += details.delta.dy;
-                    _left += details.delta.dx;
-                  });
-                },
+                onPanUpdate: _isMaximized
+                    ? null
+                    : (details) {
+                        setState(() {
+                          _top += details.delta.dy;
+                          _left += details.delta.dx;
+                        });
+                      },
                 onDoubleTap: _toggleMaximize,
                 child: Container(
                   height: 40,
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(_isMaximized ? 0 : 8)),
-                    border: Border(bottom: BorderSide(color: theme.dividerColor)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(_isMaximized ? 0 : 8),
+                    ),
+                    border: Border(
+                      bottom: BorderSide(color: theme.dividerColor),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -126,12 +136,18 @@ class _DraggableWindowState extends State<DraggableWindow> {
                       Expanded(
                         child: Text(
                           widget.title,
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       IconButton(
                         iconSize: 16,
-                        icon: Icon(_isMaximized ? Icons.close_fullscreen : Icons.crop_square),
+                        icon: Icon(
+                          _isMaximized
+                              ? Icons.close_fullscreen
+                              : Icons.crop_square,
+                        ),
                         onPressed: _toggleMaximize,
                         tooltip: _isMaximized ? 'Restaurer' : 'Agrandir',
                       ),
@@ -152,7 +168,7 @@ class _DraggableWindowState extends State<DraggableWindow> {
                   children: [
                     // Le contenu de la fenêtre
                     Positioned.fill(child: widget.child),
-                    
+
                     // Zone de redimensionnement (coin en bas à droite)
                     if (!_isMaximized)
                       Positioned(
@@ -170,7 +186,8 @@ class _DraggableWindowState extends State<DraggableWindow> {
                             child: Container(
                               width: 16,
                               height: 16,
-                              color: Colors.transparent, // Invisible mais cliquable
+                              color: Colors
+                                  .transparent, // Invisible mais cliquable
                             ),
                           ),
                         ),

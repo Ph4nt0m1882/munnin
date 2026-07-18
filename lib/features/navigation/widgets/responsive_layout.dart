@@ -6,7 +6,7 @@ class ResponsiveLayout extends StatelessWidget {
   final Widget? rightSidebar; // Optionnel : l'explorateur à droite
   final VoidCallback onThemeToggle;
   final VoidCallback onOpenEditor;
-  
+
   // Point de rupture pour passer en mode "Téléphone"
   static const double mobileBreakpoint = 600.0;
 

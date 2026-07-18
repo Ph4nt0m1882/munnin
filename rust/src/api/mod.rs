@@ -1,5 +1,6 @@
-pub mod simple;
-pub mod settings;
-pub mod models;
 pub mod fs;
+pub mod models;
 pub mod parser;
+pub mod search;
+pub mod settings;
+pub mod simple;

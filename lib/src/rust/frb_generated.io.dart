@@ -6,6 +6,7 @@
 import 'api/fs.dart';
 import 'api/models.dart';
 import 'api/parser.dart';
+import 'api/search.dart';
 import 'api/settings.dart';
 import 'api/simple.dart';
 import 'dart:async';
@@ -44,6 +45,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_box_autoadd_u_8(dynamic raw);
 
   @protected
+  DbHealthStatus dco_decode_db_health_status(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
@@ -54,6 +58,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  List<SearchResult> dco_decode_list_search_result(dynamic raw);
 
   @protected
   List<TextChunk> dco_decode_list_text_chunk(dynamic raw);
@@ -77,6 +84,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PageMetadata dco_decode_page_metadata(dynamic raw);
 
   @protected
+  SearchResult dco_decode_search_result(dynamic raw);
+
+  @protected
   TextAttributes dco_decode_text_attributes(dynamic raw);
 
   @protected
@@ -90,6 +100,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void dco_decode_unit(dynamic raw);
+
+  @protected
+  BigInt dco_decode_usize(dynamic raw);
 
   @protected
   WikiAnchor dco_decode_wiki_anchor(dynamic raw);
@@ -116,6 +129,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_box_autoadd_u_8(SseDeserializer deserializer);
 
   @protected
+  DbHealthStatus sse_decode_db_health_status(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
@@ -126,6 +142,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  List<SearchResult> sse_decode_list_search_result(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<TextChunk> sse_decode_list_text_chunk(SseDeserializer deserializer);
@@ -149,6 +170,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PageMetadata sse_decode_page_metadata(SseDeserializer deserializer);
 
   @protected
+  SearchResult sse_decode_search_result(SseDeserializer deserializer);
+
+  @protected
   TextAttributes sse_decode_text_attributes(SseDeserializer deserializer);
 
   @protected
@@ -162,6 +186,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
+
+  @protected
+  BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
   WikiAnchor sse_decode_wiki_anchor(SseDeserializer deserializer);
@@ -194,6 +221,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_u_8(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_db_health_status(
+    DbHealthStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
@@ -205,6 +238,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_search_result(
+    List<SearchResult> self,
     SseSerializer serializer,
   );
 
@@ -236,6 +275,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_page_metadata(PageMetadata self, SseSerializer serializer);
 
   @protected
+  void sse_encode_search_result(SearchResult self, SseSerializer serializer);
+
+  @protected
   void sse_encode_text_attributes(
     TextAttributes self,
     SseSerializer serializer,
@@ -252,6 +294,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_usize(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_wiki_anchor(WikiAnchor self, SseSerializer serializer);

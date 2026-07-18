@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class EditorToolbar extends StatefulWidget {
   final VoidCallback onIconPickerPressed;
 
-  const EditorToolbar({
-    super.key,
-    required this.onIconPickerPressed,
-  });
+  const EditorToolbar({super.key, required this.onIconPickerPressed});
 
   @override
   State<EditorToolbar> createState() => _EditorToolbarState();
@@ -48,7 +45,7 @@ class _EditorToolbarState extends State<EditorToolbar> {
             splashRadius: 16,
           ),
           const SizedBox(width: 16),
-          
+
           // Toolbar Actions
           Expanded(
             child: Wrap(
@@ -91,7 +88,7 @@ class _ToolbarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Tooltip(
       message: tooltip,
       child: InkWell(

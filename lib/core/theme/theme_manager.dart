@@ -16,17 +16,16 @@ class ThemeManager {
         onSecondary: style.ui.background,
         error: Colors.redAccent,
         onError: Colors.white,
-        background: style.ui.background,
-        onBackground: style.ui.textPrimary,
         surface: style.ui.surface,
         onSurface: style.ui.textPrimary,
       ),
-      textTheme: GoogleFonts.interTextTheme(
-        ThemeData(brightness: style.ui.brightness).textTheme,
-      ).copyWith(
-        bodyLarge: TextStyle(color: style.ui.textPrimary, fontSize: 16),
-        bodyMedium: TextStyle(color: style.ui.textSecondary, fontSize: 14),
-      ),
+      textTheme:
+          GoogleFonts.interTextTheme(
+            ThemeData(brightness: style.ui.brightness).textTheme,
+          ).copyWith(
+            bodyLarge: TextStyle(color: style.ui.textPrimary, fontSize: 16),
+            bodyMedium: TextStyle(color: style.ui.textSecondary, fontSize: 14),
+          ),
       appBarTheme: AppBarTheme(
         backgroundColor: style.ui.surface,
         foregroundColor: style.ui.textPrimary,

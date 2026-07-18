@@ -6,16 +6,16 @@ import 'package:munnin/core/constants/app_sizes.dart';
 class ExplorerItem extends StatelessWidget {
   /// Le nœud représenté.
   final ExplorerNode node;
-  
+
   /// Indique si l'élément est actuellement sélectionné.
   final bool isSelected;
-  
+
   /// Action au clic simple.
   final VoidCallback onTap;
-  
+
   /// Action au clic droit (position fournie).
   final void Function(Offset position) onSecondaryTap;
-  
+
   /// Action déclenchée lorsqu'un autre élément est relâché sur celui-ci (Drag & Drop).
   final void Function(String droppedPath) onDroppedOn;
 
@@ -32,12 +32,12 @@ class ExplorerItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     String name = node.entity.path.split(RegExp(r'[/\\]')).last;
-    
+
     // Masquer l'extension .md pour l'affichage
     if (!node.isDirectory && name.toLowerCase().endsWith('.md')) {
       name = name.substring(0, name.length - 3);
     }
-    
+
     // Décalage pour simuler l'arbre
     final indent = AppSizes.spacingM + (node.depth * AppSizes.spacingL);
 
@@ -45,30 +45,34 @@ class ExplorerItem extends StatelessWidget {
     Widget content = Container(
       height: AppSizes.itemHeightCompact,
       padding: EdgeInsets.only(left: indent, right: AppSizes.spacingS),
-      color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.15) : Colors.transparent,
+      color: isSelected
+          ? theme.colorScheme.primary.withValues(alpha: 0.15)
+          : Colors.transparent,
       child: Row(
         children: [
           if (node.isDirectory)
             Icon(
-              node.isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+              node.isExpanded
+                  ? Icons.keyboard_arrow_down
+                  : Icons.keyboard_arrow_right,
               size: AppSizes.iconSmall,
               color: theme.iconTheme.color?.withValues(alpha: 0.7),
             )
           else
-            const SizedBox(width: AppSizes.iconSmall), 
-            
+            const SizedBox(width: AppSizes.iconSmall),
+
           const SizedBox(width: AppSizes.spacingXs),
-          
+
           Icon(
             node.isDirectory ? Icons.folder : Icons.insert_drive_file,
             size: AppSizes.iconSmall,
-            color: node.isDirectory 
+            color: node.isDirectory
                 ? theme.colorScheme.primary.withValues(alpha: 0.8)
                 : theme.iconTheme.color?.withValues(alpha: 0.5),
           ),
-          
+
           const SizedBox(width: AppSizes.spacingS),
-          
+
           Expanded(
             child: Text(
               name,
@@ -77,9 +81,11 @@ class ExplorerItem extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: AppSizes.fontS,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected 
+                color: isSelected
                     ? theme.colorScheme.primary
-                    : (node.isDirectory ? theme.textTheme.bodyLarge?.color : theme.textTheme.bodyMedium?.color),
+                    : (node.isDirectory
+                          ? theme.textTheme.bodyLarge?.color
+                          : theme.textTheme.bodyMedium?.color),
               ),
             ),
           ),
@@ -95,26 +101,26 @@ class ExplorerItem extends StatelessWidget {
         child: Opacity(
           opacity: 0.7,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacingS, vertical: AppSizes.spacingXs),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.spacingS,
+              vertical: AppSizes.spacingXs,
+            ),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(AppSizes.radiusS),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: AppSizes.radiusS,
                   offset: const Offset(2, 2),
-                )
+                ),
               ],
             ),
             child: Text(name, style: theme.textTheme.bodyMedium),
           ),
         ),
       ),
-      childWhenDragging: Opacity(
-        opacity: 0.3,
-        child: content,
-      ),
+      childWhenDragging: Opacity(opacity: 0.3, child: content),
       child: content,
     );
 
@@ -132,7 +138,9 @@ class ExplorerItem extends StatelessWidget {
         builder: (context, candidateData, rejectedData) {
           final isHovered = candidateData.isNotEmpty;
           return Container(
-            color: isHovered ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.transparent,
+            color: isHovered
+                ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                : Colors.transparent,
             child: draggableWidget,
           );
         },
@@ -143,10 +151,7 @@ class ExplorerItem extends StatelessWidget {
       onSecondaryTapDown: (details) {
         onSecondaryTap(details.globalPosition);
       },
-      child: InkWell(
-        onTap: onTap,
-        child: finalContent,
-      ),
+      child: InkWell(onTap: onTap, child: finalContent),
     );
   }
 }

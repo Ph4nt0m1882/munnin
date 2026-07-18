@@ -132,3 +132,9 @@ app.*.symbols
 *.iws
 *.ipr
 .DS_Store
+
+testMunnin
+# Munnin test wikis
+testMunnin/
+**/.crowindex
+

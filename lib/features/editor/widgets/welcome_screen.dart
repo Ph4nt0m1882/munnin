@@ -1,8 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:munnin/src/rust/api/simple.dart';
 import 'package:munnin/core/commands/commands.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -20,7 +17,7 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
-  bool _isLoading = false;
+  final bool _isLoading = false;
   bool _showAllWikis = false;
 
   void _createNewWiki() {
@@ -43,8 +40,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         ? 'assets/Images/Icones/munnin(dark).svg'
         : 'assets/Images/Icones/munnin(light).svg';
 
-    final displayedWikis = _showAllWikis 
-        ? widget.recentWikis 
+    final displayedWikis = _showAllWikis
+        ? widget.recentWikis
         : widget.recentWikis.take(5).toList();
 
     return Center(
@@ -59,11 +56,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               alignment: Alignment.topCenter,
               child: Column(
                 children: [
-                  SvgPicture.asset(
-                    iconPath,
-                    width: 80,
-                    height: 80,
-                  ),
+                  SvgPicture.asset(iconPath, width: 80, height: 80),
                   const SizedBox(height: 24),
                   Text(
                     'Munnin',
@@ -83,7 +76,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
             ),
             const SizedBox(height: 64),
-            
+
             // DEUX COLONNES
             Expanded(
               child: Row(
@@ -132,14 +125,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ],
                     ),
                   ),
-                  
+
                   // SÉPARATEUR
                   Container(
                     width: 1,
                     color: theme.dividerColor.withValues(alpha: 0.5),
                     margin: const EdgeInsets.symmetric(horizontal: 48),
                   ),
-                  
+
                   // COLONNE DROITE : RÉCENTS
                   Expanded(
                     flex: 6,
@@ -173,23 +166,36 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   onTap: () => widget.onWikiOpened(path),
                                   borderRadius: BorderRadius.circular(8),
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8.0,
+                                      horizontal: 8.0,
+                                    ),
                                     child: Row(
                                       children: [
-                                        Icon(Icons.auto_stories, 
-                                            size: 20, 
-                                            color: theme.colorScheme.primary.withValues(alpha: 0.8)),
+                                        Icon(
+                                          Icons.auto_stories,
+                                          size: 20,
+                                          color: theme.colorScheme.primary
+                                              .withValues(alpha: 0.8),
+                                        ),
                                         const SizedBox(width: 16),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
                                               Text(
-                                                path, 
-                                                maxLines: 1, 
+                                                name,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              Text(
+                                                path,
+                                                maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: theme.textTheme.bodySmall,
+                                                style:
+                                                    theme.textTheme.bodySmall,
                                               ),
                                             ],
                                           ),

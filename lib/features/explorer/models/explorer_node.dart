@@ -4,13 +4,13 @@ import 'dart:io';
 class ExplorerNode {
   /// L'entité physique sur le disque.
   final FileSystemEntity entity;
-  
+
   /// La profondeur du nœud dans l'arborescence (pour l'indentation).
   final int depth;
-  
+
   /// Indique si le dossier est actuellement déployé.
   final bool isExpanded;
-  
+
   /// Indique si l'entité est un dossier.
   final bool isDirectory;
 
