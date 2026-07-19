@@ -59,6 +59,9 @@ dependencies:
   re_highlight: ^0.0.3
 
   path: any
+  video_player: ^2.13.0
+  video_player_win: ^3.2.2
+  path_provider: ^2.1.6
 dev_dependencies:
   flutter_test:
     sdk: flutter

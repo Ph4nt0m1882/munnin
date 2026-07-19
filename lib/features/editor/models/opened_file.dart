@@ -1,4 +1,5 @@
 enum EditorMode { markdown, render }
+enum TabOpenAnimation { normal, raven, none }
 
 class OpenedFile {
   final String path;
@@ -6,6 +7,7 @@ class OpenedFile {
   bool isDirty;
   EditorMode mode;
   TeleportTarget? teleportTarget;
+  TabOpenAnimation openAnimation;
 
   // Nom du fichier pour l'affichage dans l'onglet
   String get name {
@@ -22,6 +24,7 @@ class OpenedFile {
     this.isDirty = false,
     this.mode = EditorMode.markdown,
     this.teleportTarget,
+    this.openAnimation = TabOpenAnimation.none,
   });
 }
 

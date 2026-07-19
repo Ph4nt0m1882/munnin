@@ -19,11 +19,13 @@ class MarkdownSyntaxController extends TextEditingController {
     final textStr = text;
     final currentFilePath = EditorManager.instance.activeFilePath ?? '';
 
-    // Regex for HTTP links: http(s)://...
-    // Regex for Markdown links: [title](url)
-    // We will combine them or just parse sequentially.
-    // To keep it simple, let's find Markdown links and plain HTTP links.
-    final regex = RegExp(r'\[([^\]]+)\]\(([^)]+)\)|https?:\/\/[^\s]+');
+    final theme = Theme.of(context);
+    // Regex matches in order:
+    // 1. WikiLinks: [[title]]
+    // 2. Footnotes: [^id]
+    // 3. Markdown links: [title](url)
+    // 4. HTTP links: http(s)://...
+    final regex = RegExp(r'\[\[([^\]]+)\]\]|\[\^([^\]]+)\]|\[([^\]]+)\]\(([^)]+)\)|https?:\/\/[^\s]+');
     final matches = regex.allMatches(textStr);
 
     if (matches.isEmpty) {
@@ -43,9 +45,27 @@ class MarkdownSyntaxController extends TextEditingController {
         );
       }
 
-      final isMarkdownLink = match.group(1) != null;
       final fullMatch = match.group(0)!;
-      final url = isMarkdownLink ? match.group(2)! : fullMatch;
+      final isWikiLink = match.group(1) != null;
+      final isFootnote = match.group(2) != null;
+      final isMarkdownLink = match.group(3) != null;
+
+      String url;
+      Color linkColor = Colors.blue;
+
+      if (isWikiLink) {
+        url = "wiki://${match.group(1)}";
+        linkColor = theme.colorScheme.tertiary; // WikiLinks in tertiary color
+      } else if (isFootnote) {
+        url = "footnote://${match.group(2)}";
+        linkColor = theme.colorScheme.secondary; // Footnotes in secondary color
+      } else if (isMarkdownLink) {
+        url = match.group(4)!;
+        linkColor = theme.colorScheme.primary; // Markdown links in primary color
+      } else {
+        url = fullMatch;
+        linkColor = theme.colorScheme.primary; // HTTP links in primary color
+      }
 
       final isHovered = _hoveredUrl == url;
 
@@ -53,7 +73,7 @@ class MarkdownSyntaxController extends TextEditingController {
         TextSpan(
           text: fullMatch,
           style: style?.copyWith(
-            color: Colors.blue,
+            color: linkColor,
             decoration: isHovered
                 ? TextDecoration.underline
                 : TextDecoration.none,

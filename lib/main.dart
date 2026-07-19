@@ -188,8 +188,9 @@ class _MunninAppState extends State<MunninApp> {
         icon: Icons.code,
         execute: () {
           final path = EditorManager.instance.activeFilePath;
-          if (path != null)
+          if (path != null) {
             EditorManager.instance.setFileMode(path, EditorMode.markdown);
+          }
         },
       ),
     );
@@ -202,8 +203,9 @@ class _MunninAppState extends State<MunninApp> {
         icon: Icons.preview,
         execute: () {
           final path = EditorManager.instance.activeFilePath;
-          if (path != null)
+          if (path != null) {
             EditorManager.instance.setFileMode(path, EditorMode.render);
+          }
         },
       ),
     );
@@ -510,6 +512,7 @@ class _MunninAppState extends State<MunninApp> {
     setState(() {
       _currentWikiPath = path;
     });
+    EditorManager.instance.wikiRoot = path;
     addRecentWiki(wikiPath: path);
 
     // Initialise la base de données de recherche pour ce wiki

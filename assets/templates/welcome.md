@@ -176,5 +176,21 @@ Fini les maux de tête avec les images locales ! Munnin résout les chemins rela
 Munnin intercepte des syntaxes Markdown uniques, comme le double-point d'exclamation :
 !![Fichier Spécial](mon_fichier.pdf)
 
+{{ ... }}
+
 ---
 *Explorez, éditez et façonnez votre wiki comme vous le souhaitez !*
+
+## 7. Liens Wiki et Notes de bas de page
+Vous pouvez lier vos documents entre eux très facilement en utilisant la syntaxe WikiLink avec de simples doubles crochets :
+
+- **Lien simple :** `[[Mon super lien]]`
+- **Lien avec Alias (Texte personnalisé) :** `[[Pomme|Une belle pomme]]`
+- **Lien vers un titre spécifique :** `[[Pomme(pommes vertes)]]`
+- **Lien vers un titre avec Alias :** `[[Pomme(pommes vertes)|Des pommes vertes]]`
+
+Essayez de cliquer sur ces liens en mode rendu : [[Pomme(pommes vertes)|Des pommes vertes]]
+
+Vous pouvez également ajouter des notes de bas de page de cette manière : [^1]
+
+[^1]: Et voici la définition de la note de bas de page !

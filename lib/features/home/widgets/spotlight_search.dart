@@ -532,8 +532,9 @@ class _PreviewPane extends StatelessWidget {
     return FutureBuilder<String>(
       future: File(filePath).readAsString(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
 
         final content = snapshot.data!;
 

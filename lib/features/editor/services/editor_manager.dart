@@ -10,6 +10,7 @@ class EditorManager extends ChangeNotifier {
 
   final List<OpenedFile> _openedFiles = [];
   String? _activeFilePath;
+  String? wikiRoot;
 
   List<OpenedFile> get openedFiles => List.unmodifiable(_openedFiles);
   String? get activeFilePath => _activeFilePath;
@@ -24,7 +25,7 @@ class EditorManager extends ChangeNotifier {
   }
 
   /// Ouvre un fichier. S'il est déjà ouvert, le met simplement au premier plan.
-  Future<void> openFile(String path) async {
+  Future<void> openFile(String path, {TabOpenAnimation animation = TabOpenAnimation.normal}) async {
     // Vérifie si déjà ouvert
     final existingIndex = _openedFiles.indexWhere((f) => f.path == path);
     if (existingIndex != -1) {
@@ -38,7 +39,7 @@ class EditorManager extends ChangeNotifier {
       if (!await file.exists()) return;
 
       final content = await file.readAsString();
-      _openedFiles.add(OpenedFile(path: path, content: content));
+      _openedFiles.add(OpenedFile(path: path, content: content, openAnimation: animation));
       _activeFilePath = path;
       notifyListeners();
     } catch (e) {
@@ -47,8 +48,8 @@ class EditorManager extends ChangeNotifier {
   }
 
   /// Ouvre un fichier et scrolle jusqu'aux offsets donnés
-  Future<void> teleportTo(String path, int startOffset, int endOffset) async {
-    await openFile(path);
+  Future<void> teleportTo(String path, int startOffset, int endOffset, {TabOpenAnimation animation = TabOpenAnimation.normal}) async {
+    await openFile(path, animation: animation);
     final file = _openedFiles.where((f) => f.path == path).firstOrNull;
     if (file != null) {
       file.teleportTarget = TeleportTarget(startOffset, endOffset);
@@ -74,6 +75,51 @@ class EditorManager extends ChangeNotifier {
       }
     }
     notifyListeners();
+  }
+
+  /// Ouvre un WikiLink et crée le fichier s'il n'existe pas.
+  Future<void> resolveWikiLink(String target, String header, {TabOpenAnimation animation = TabOpenAnimation.normal}) async {
+    String? foundPath;
+    
+    // 1. Chercher le fichier dans le workspace
+    if (wikiRoot != null) {
+      final dir = Directory(wikiRoot!);
+      if (dir.existsSync()) {
+        final files = dir.listSync(recursive: true);
+        for (var f in files) {
+          if (f is File && f.path.endsWith('.md')) {
+            final name = f.path.split(Platform.pathSeparator).last;
+            if (name.toLowerCase() == '$target.md'.toLowerCase()) {
+              foundPath = f.path;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Créer si non trouvé
+    if (foundPath == null && wikiRoot != null) {
+      foundPath = '$wikiRoot${Platform.pathSeparator}$target.md';
+      final file = File(foundPath);
+      await file.writeAsString('# $target\n\n');
+    } else if (foundPath == null && _activeFilePath != null) {
+      // Fallback si wikiRoot est null, on crée à côté du fichier courant
+      final parent = File(_activeFilePath!).parent.path;
+      foundPath = '$parent${Platform.pathSeparator}$target.md';
+      final file = File(foundPath);
+      await file.writeAsString('# $target\n\n');
+    }
+
+    if (foundPath == null) return;
+
+    // 3. Ouvrir le fichier
+    await openFile(foundPath, animation: animation);
+
+    // 4. Scroller au header si présent (implémentation future avec teleportTo)
+    if (header.isNotEmpty) {
+      // TODO: chercher l'offset du header et appeler teleportTo
+    }
   }
 
   /// Met à jour le contenu d'un fichier (rend dirty)

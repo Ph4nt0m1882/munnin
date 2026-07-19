@@ -8,6 +8,22 @@ Mode getPatchedMarkdownSyntax() {
   final Mode patched = langMarkdown;
 
   if (patched.contains != null) {
+    // Add custom syntax for WikiLinks and Footnotes at the beginning
+    patched.contains!.insertAll(0, [
+      Mode(
+        className: 'symbol', // purple in Monokai
+        begin: r'\[\[',
+        end: r'\]\]',
+        relevance: 0,
+      ),
+      Mode(
+        className: 'type', // light blue in Monokai
+        begin: r'\[\^',
+        end: r'\]',
+        relevance: 0,
+      ),
+    ]);
+
     for (var i = 0; i < patched.contains!.length; i++) {
       final mode = patched.contains![i];
       if (mode.className == 'section' && mode.variants != null) {

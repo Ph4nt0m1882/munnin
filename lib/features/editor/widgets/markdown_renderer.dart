@@ -4,8 +4,10 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:munnin/features/editor/widgets/interactive_code_block.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:munnin/features/editor/editor.dart';
 import 'package:munnin/features/editor/utils/custom_markdown_syntax.dart';
 import 'package:munnin/features/editor/utils/color_parser.dart';
+import 'package:munnin/features/editor/widgets/flying_crow_animation.dart';
 import 'package:munnin/features/editor/utils/icon_parser.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:munnin/features/editor/services/link_preview_manager.dart';
@@ -48,14 +50,22 @@ class MarkdownRenderer extends StatelessWidget {
       (match) => '```${match.group(1)}-edit',
     );
 
+    // 0.6 Pré-traitement pour les définitions de notes de bas de page [^1]: def
+    final String preprocessedContent3 = preprocessedContent2.replaceAllMapped(
+      RegExp(r'^\[\^([^\]]+)\]:\s*(.+)$', multiLine: true),
+      (match) => '<footnote-def id="${match.group(1)}">${match.group(2)}</footnote-def>',
+    );
+
     // 1. Conversion Markdown -> HTML
     final String htmlContent = md.markdownToHtml(
-      preprocessedContent2,
+      preprocessedContent3,
       extensionSet: md
           .ExtensionSet
           .gitHubFlavored, // Support des tables, sans les alertes web pour utiliser notre TagExtension
       inlineSyntaxes: [
         DoubleBangImageSyntax(), // Notre syntaxe custom !![]()
+        WikiLinkSyntax(),
+        FootnoteRefSyntax(),
       ],
     );
 
@@ -65,6 +75,7 @@ class MarkdownRenderer extends StatelessWidget {
         data: htmlContent,
         style: _buildHtmlStyles(theme),
         extensions: _buildHtmlExtensions(
+          context,
           theme,
           filePath ?? '',
           onCheckboxToggled,
@@ -171,11 +182,127 @@ class MarkdownRenderer extends StatelessWidget {
   }
 
   List<HtmlExtension> _buildHtmlExtensions(
+    BuildContext context,
     ThemeData theme,
     String filePath,
     void Function(int, String)? onCheckboxToggled,
   ) {
     return [
+      TagExtension(
+        tagsToExtend: {"wiki-link"},
+        builder: (extensionContext) {
+          final target = extensionContext.element?.attributes['target'] ?? '';
+          final header = extensionContext.element?.attributes['header'] ?? '';
+          final alias = extensionContext.element?.innerHtml ?? target;
+          return GestureDetector(
+            onTapDown: (details) {
+              final startPos = details.globalPosition;
+              final size = MediaQuery.of(context).size;
+              final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+              Offset endPos = Offset(size.width * 0.5, 76); // Fallback
+              
+              if (renderBox != null) {
+                final Offset rendererGlobalPos = renderBox.localToGlobal(Offset.zero);
+                // MarkdownRenderer is right below the 40px tab bar.
+                // The center of the tab bar vertically is rendererGlobalPos.dy - 20.
+                final double tabCenterY = rendererGlobalPos.dy - 20;
+                
+                // Calculate approximate X offset for the new tab
+                double totalWidth = 0;
+                for (final file in EditorManager.instance.openedFiles) {
+                  // Approximate width of an existing tab (padding + icons + text)
+                  totalWidth += 80 + (file.name.length * 8);
+                }
+                
+                // Add half the width of the new tab
+                final newTabWidth = 80 + (target.split('/').last.length * 8);
+                totalWidth += newTabWidth / 2;
+                
+                // The tabs start at the left edge of the MarkdownRenderer area
+                // (Assuming padding is minimal, rendererGlobalPos.dx is roughly the left edge)
+                endPos = Offset(rendererGlobalPos.dx + totalWidth, tabCenterY);
+              }
+
+              bool animationFinished = false;
+              FlyingCrowAnimation.show(context, startPos, endPos, () {
+                animationFinished = true;
+              });
+
+              // Wait for animation to finish, THEN open the file
+              () async {
+                while (!animationFinished) {
+                  await Future.delayed(const Duration(milliseconds: 50));
+                }
+                EditorManager.instance.resolveWikiLink(target, header, animation: TabOpenAnimation.raven);
+              }();
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Text(
+                alias,
+                style: TextStyle(
+                  color: theme.colorScheme.tertiary,
+                  decoration: TextDecoration.underline,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      TagExtension(
+        tagsToExtend: {"footnote-ref"},
+        builder: (extensionContext) {
+          final id = extensionContext.element?.attributes['id'] ?? '';
+          return GestureDetector(
+            onTap: () {
+              debugPrint("Clic sur Footnote Ref : $id");
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Transform.translate(
+                offset: const Offset(0, -4),
+                child: Text(
+                  id,
+                  style: TextStyle(
+                    color: theme.colorScheme.secondary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      TagExtension(
+        tagsToExtend: {"footnote-def"},
+        builder: (extensionContext) {
+          final id = extensionContext.element?.attributes['id'] ?? '';
+          final htmlDefContent = extensionContext.element?.innerHtml ?? '';
+          return Padding(
+            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "[$id]: ",
+                  style: TextStyle(
+                    color: theme.colorScheme.secondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Expanded(
+                  child: Html(
+                    data: htmlDefContent,
+                    style: _buildHtmlStyles(theme),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
       TagExtension(
         tagsToExtend: {"a"},
         builder: (extensionContext) {
@@ -390,16 +517,19 @@ class MarkdownRenderer extends StatelessWidget {
 
           return GestureDetector(
             onTap: () {
-              if (onCheckboxToggled != null)
+              if (onCheckboxToggled != null) {
                 onCheckboxToggled(id, state == '*' ? ' ' : '*');
+              }
             },
             onDoubleTap: () {
-              if (onCheckboxToggled != null)
+              if (onCheckboxToggled != null) {
                 onCheckboxToggled(id, state == 'v' ? ' ' : 'v');
+              }
             },
             onSecondaryTap: () {
-              if (onCheckboxToggled != null)
+              if (onCheckboxToggled != null) {
                 onCheckboxToggled(id, state == 'x' ? ' ' : 'x');
+              }
             },
             child: Padding(
               padding: const EdgeInsets.only(right: 8.0),
@@ -481,6 +611,7 @@ class MarkdownRenderer extends StatelessWidget {
             final icon = parseIcon(iconStr);
 
             return _buildAdmonitionWidget(
+              context: context,
               theme: theme,
               color: color,
               icon: icon,
@@ -529,6 +660,7 @@ class MarkdownRenderer extends StatelessWidget {
             }
 
             return _buildAdmonitionWidget(
+              context: context,
               theme: theme,
               color: color,
               icon: icon,
@@ -553,6 +685,7 @@ class MarkdownRenderer extends StatelessWidget {
               data: html,
               style: _buildHtmlStyles(theme),
               extensions: _buildHtmlExtensions(
+                context,
                 theme,
                 filePath,
                 onCheckboxToggled,
@@ -565,6 +698,7 @@ class MarkdownRenderer extends StatelessWidget {
   }
 
   Widget _buildAdmonitionWidget({
+    required BuildContext context,
     required ThemeData theme,
     required Color color,
     required IconData icon,
@@ -616,6 +750,7 @@ class MarkdownRenderer extends StatelessWidget {
               data: htmlContent,
               style: _buildHtmlStyles(theme),
               extensions: _buildHtmlExtensions(
+                context,
                 theme,
                 filePath,
                 onCheckboxToggled,

@@ -415,7 +415,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
   }
 }
 
-class _EditorTab extends StatelessWidget {
+class _EditorTab extends StatefulWidget {
   final OpenedFile file;
   final bool isActive;
   final VoidCallback onTap;
@@ -429,76 +429,176 @@ class _EditorTab extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bgColor = isActive
-        ? theme.scaffoldBackgroundColor
-        : theme.colorScheme.surface;
-    final textColor = isActive
-        ? theme.textTheme.bodyLarge?.color
-        : theme.textTheme.bodySmall?.color;
+  State<_EditorTab> createState() => _EditorTabState();
+}
 
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          border: Border(
-            right: BorderSide(color: theme.dividerColor, width: 1),
-            top: BorderSide(
-              color: isActive ? theme.colorScheme.primary : Colors.transparent,
-              width: 2,
+class _EditorTabState extends State<_EditorTab> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _slideSizeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    if (widget.file.openAnimation != TabOpenAnimation.none) {
+      if (widget.file.openAnimation == TabOpenAnimation.normal) {
+        _slideSizeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+        _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic)
+        );
+      } else if (widget.file.openAnimation == TabOpenAnimation.raven) {
+        _slideSizeAnimation = const AlwaysStoppedAnimation(1.0);
+        _scaleAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.elasticOut)
+        );
+      }
+      _controller.forward().then((_) {
+        if (mounted) {
+          widget.file.openAnimation = TabOpenAnimation.none;
+        }
+      });
+    } else {
+      _slideSizeAnimation = const AlwaysStoppedAnimation(1.0);
+      _scaleAnimation = const AlwaysStoppedAnimation(1.0);
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final theme = Theme.of(context);
+        final bgColor = widget.isActive
+            ? theme.scaffoldBackgroundColor
+            : theme.colorScheme.surface;
+        final textColor = widget.isActive
+            ? theme.textTheme.bodyLarge?.color
+            : theme.textTheme.bodySmall?.color;
+
+        final isNormalAnim = widget.file.openAnimation == TabOpenAnimation.normal && _controller.isAnimating;
+        final isRavenAnim = widget.file.openAnimation == TabOpenAnimation.raven && _controller.isAnimating;
+
+        Color? currentBgColor = bgColor;
+        if (isNormalAnim) {
+          final darkColor = theme.brightness == Brightness.dark ? Colors.black : Colors.grey.shade300;
+          currentBgColor = Color.lerp(darkColor, bgColor, _controller.value);
+        }
+
+        Widget tabContent = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: currentBgColor,
+            border: Border(
+              right: BorderSide(color: theme.dividerColor, width: 1),
+              top: BorderSide(
+                color: widget.isActive ? theme.colorScheme.primary : Colors.transparent,
+                width: 2,
+              ),
             ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Icône de mode
-            InkWell(
-              onTap: () {
-                final newMode = file.mode == EditorMode.markdown
-                    ? EditorMode.render
-                    : EditorMode.markdown;
-                EditorManager.instance.setFileMode(file.path, newMode);
-              },
-              borderRadius: BorderRadius.circular(4),
-              child: Padding(
-                padding: const EdgeInsets.only(right: 6.0),
-                child: Icon(
-                  file.mode == EditorMode.render ? Icons.preview : Icons.code,
-                  size: 14,
-                  color: textColor?.withValues(alpha: 0.8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icône de mode
+              InkWell(
+                onTap: () {
+                  final newMode = widget.file.mode == EditorMode.markdown
+                      ? EditorMode.render
+                      : EditorMode.markdown;
+                  EditorManager.instance.setFileMode(widget.file.path, newMode);
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 6.0),
+                  child: Icon(
+                    widget.file.mode == EditorMode.render ? Icons.preview : Icons.code,
+                    size: 14,
+                    color: textColor?.withValues(alpha: 0.8),
+                  ),
                 ),
               ),
-            ),
-            // Nom du fichier
-            Text(
-              file.name + (file.isDirty ? ' *' : ''),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: textColor,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                fontStyle: file.isDirty ? FontStyle.italic : FontStyle.normal,
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Bouton fermer
-            InkWell(
-              onTap: onClose,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: Icon(
-                  Icons.close,
-                  size: 14,
-                  color: textColor?.withValues(alpha: 0.6),
+              // Nom du fichier
+              Text(
+                widget.file.name + (widget.file.isDirty ? ' *' : ''),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: textColor,
+                  fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.normal,
+                  fontStyle: widget.file.isDirty ? FontStyle.italic : FontStyle.normal,
                 ),
               ),
+              const SizedBox(width: 8),
+              // Bouton fermer
+              InkWell(
+                onTap: widget.onClose,
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Icon(
+                    Icons.close,
+                    size: 14,
+                    color: textColor?.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        if (isNormalAnim) {
+          tabContent = ClipRect(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              widthFactor: _slideSizeAnimation.value,
+              child: FractionalTranslation(
+                translation: Offset(_slideSizeAnimation.value - 1.0, 0),
+                child: tabContent,
+              ),
             ),
-          ],
-        ),
-      ),
+          );
+        } else if (isRavenAnim) {
+          tabContent = Stack(
+            alignment: Alignment.center,
+            children: [
+              ScaleTransition(
+                scale: _scaleAnimation,
+                child: tabContent,
+              ),
+              if (_controller.value < 0.8)
+                Positioned.fill(
+                  child: ClipRect(
+                    child: Transform.scale(
+                      scale: _controller.value * 3.0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.4 * (1.0 - (_controller.value / 0.8))),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        }
+
+        return InkWell(
+          onTap: widget.onTap,
+          child: tabContent,
+        );
+      },
     );
   }
 }

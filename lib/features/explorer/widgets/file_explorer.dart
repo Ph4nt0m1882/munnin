@@ -273,8 +273,9 @@ class FileExplorerState extends State<FileExplorer> {
 
     if (newName == null ||
         newName.trim().isEmpty ||
-        newName.trim() == displayName)
+        newName.trim() == displayName) {
       return;
+    }
 
     String finalName = newName.trim();
     if (!node.isDirectory && !finalName.toLowerCase().endsWith('.md')) {
@@ -294,10 +295,11 @@ class FileExplorerState extends State<FileExplorer> {
       }
       loadTree();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
     }
   }
 
@@ -338,10 +340,11 @@ class FileExplorerState extends State<FileExplorer> {
       if (_selectedNodePath == node.entity.path) _selectedNodePath = null;
       loadTree();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
     }
   }
 
@@ -362,10 +365,11 @@ class FileExplorerState extends State<FileExplorer> {
       EditorManager.instance.renameOpenedFile(sourcePath, newPath);
       loadTree();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Erreur de déplacement: $e')));
+      }
     }
   }
 
